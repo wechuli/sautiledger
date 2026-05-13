@@ -2,67 +2,65 @@
 
 This document summarizes the core entities AI agents should use when designing code, schemas, API routes, and UI state.
 
-The backend should implement these entities with TypeORM. Prefer explicit entity classes, migrations, and repository/service layers over scattered database access.
+The backend implements these entities with TypeORM. As of May 2026 the MVP runs on **SQLite** with `synchronize: true` (no migrations). Entities are written to be portable so a Postgres switch is a configuration change later.
 
 Recommended TypeORM conventions:
 
 - Use UUID primary keys for domain entities.
 - Use `createdAt` and `updatedAt` timestamp columns where records can change.
-- Use enums for stable status, role, urgency, moderation, and evidence values.
+- Use string-literal enums for stable status, urgency, and scope values; mirror them as `as const` arrays in `@sautiledger/shared` so the API and frontend stay in sync.
 - Keep entity relations explicit, but avoid loading large relation graphs by default.
 - Store generated AI output in structured JSON columns only when the shape is validated.
+- Issue categories and Kenya locations live as data in `@sautiledger/shared` (`MANDATE_CATEGORIES`, `KENYA_COUNTIES`), not as DB tables.
 
 ## Submission
 
 An individual raw concern from a citizen or organizer.
 
-Key fields:
+Key fields (current):
 
 - `id`
 - `anonymousTrackingCode`
-- `submitterHash`
+- `submitterHash` (nullable; salted SHA-256 of the phone when an account exists)
 - `originalText`
-- `normalizedText`
+- `normalizedText` (AI-produced)
 - `detectedLanguage`
-- `locationId`
-- `issueCategoryId`
-- `urgency`
-- `mandateClusterId`
+- `country`, `county`, `constituency`, `ward` (string columns; no `Location` table)
+- `category` (enum string)
+- `urgency` (enum string)
+- `scopeLevel` (`national | county | constituency | ward`)
+- `mandateId` (nullable FK to `Mandate`)
 - `submissionHash`
 - `processingStatus`
-- `moderationRecommendation`
-- `aiProcessingResult`
-- `createdAt`
-- `updatedAt`
+- `aiProcessingResult` (JSON; includes `safetyFlags`, confidences, etc.)
+- `createdAt`, `updatedAt`
 
 Notes:
 
-- Preserve original text internally.
-- Avoid storing direct identity unless required for a deliberate feature.
-- Do not expose raw individual submissions publicly by default.
+- Original text is preserved internally and never shown publicly.
+- Submissions are not exposed individually on public surfaces; the public API serves Mandate aggregates.
 
-## Mandate Cluster / Community Mandate
+## Mandate (Community Mandate)
 
-An anonymized cluster of related submissions representing a shared community priority.
+An anonymized cluster of related submissions representing a shared community priority. Implemented as the `Mandate` entity (the brief sometimes calls this a "mandate cluster").
 
-Key fields:
+Key fields (current):
 
 - `id`
 - `title`
 - `summary`
 - `formalMandateText`
-- `issueCategoryId`
-- `locationScope`
-- `responsibleAuthorityId`
+- `category` (enum string)
+- `scopeLevel` (`national | county | constituency | ward`)
+- `country`, `county`, `constituency`, `ward` (string columns)
+- `responsibleOffice` (cached display string; can also be re-derived from `responsibleOffice(scopeLevel, location)` in `@sautiledger/shared`)
 - `urgency`
 - `status`
 - `submissionCount`
 - `evidenceStrength`
-- `moderationStatus`
-- `firstReportedAt`
-- `lastActivityAt`
-- `createdAt`
-- `updatedAt`
+- `upvoteCount` (denormalized counter; source of truth is the `MandateUpvote` table)
+- `firstReportedAt`, `lastActivityAt`
+- `createdAt`, `updatedAt`
 
 Statuses:
 
@@ -74,46 +72,37 @@ Statuses:
 - `disputed`
 - `escalated`
 
-## Authority
+## Scope and responsible office (no `Authority` table)
 
-The office, institution, or government level likely responsible for a mandate.
-
-Key fields:
-
-- `id`
-- `name`
-- `level`
-- `jurisdiction`
-- `description`
-- `contactEmail`
-- `verified`
-- `createdAt`
-- `updatedAt`
-
-Initial levels:
+The MVP does **not** have a separate `Authority` entity. Instead, every submission and mandate carries a `scopeLevel`:
 
 - `national`
 - `county`
 - `constituency`
 - `ward`
 
+The responsible office is derived from the scope plus the citizen-supplied location via `responsibleOffice(scopeLevel, location)` in `@sautiledger/shared`. Examples:
+
+- `national` → `Office of the President`
+- `county` + `Nairobi` → `Nairobi County Government`
+- `ward` + `Westlands` → `Westlands Ward Administration`
+
+When the platform onboards real institutions later, this can be replaced by an `Authority` table without changing public URLs.
+
 ## Institution Response
 
-A public response by a responsible authority or institution user.
+A public response by a responsible institution. In the MVP, institution users authenticate via the shared `INSTITUTION_DEMO_KEY` header.
 
-Key fields:
+Key fields (current):
 
 - `id`
-- `mandateClusterId`
-- `authorityId`
-- `responderUserId`
+- `mandateId`
 - `responseText`
-- `statusUpdate`
+- `statusUpdate` (optional new mandate status)
 - `expectedResolutionDate`
 - `createdAt`
-- `updatedAt`
 
-Response types:
+Response types are conventions on the `responseText`/`statusUpdate` payload:
 
 - Acknowledgement.
 - Request for more information.
@@ -129,16 +118,43 @@ Timeline of mandate state changes.
 Key fields:
 
 - `id`
-- `mandateClusterId`
+- `mandateId`
 - `oldStatus`
 - `newStatus`
-- `changedBy`
 - `note`
+- `createdAt`
+
+## Citizen
+
+A registered citizen account used for tracking-code recovery, "My submissions", and upvoting. Anonymous submissions still work without an account.
+
+Key fields:
+
+- `id`
+- `phoneE164` (Kenyan E.164)
+- `phoneHash` (salted SHA-256 of `phoneE164` using `SUBMISSION_HASH_SALT`)
+- `passwordHash` (bcrypt)
+- `displayName` (optional, never shown publicly)
+- `createdAt`, `updatedAt`
+
+Authentication: phone + password → JWT bearer token signed with `SESSION_SECRET`.
+
+## Mandate Upvote
+
+A citizen's endorsement of a mandate. Unique on `(mandateId, citizenId)`; the `Mandate.upvoteCount` column is kept in sync as votes toggle.
+
+Key fields:
+
+- `id`
+- `mandateId`
+- `citizenId`
 - `createdAt`
 
 ## Issue Category
 
-Initial categories:
+Issue categories are an enum in `@sautiledger/shared` (`MANDATE_CATEGORIES`), not a database table. Adding a new category means updating the shared constant.
+
+Current categories:
 
 - Water
 - Roads
@@ -155,75 +171,36 @@ Initial categories:
 
 ## Location
 
-Initial Kenya-focused location model:
-
-- `id`
-- `country`
-- `county`
-- `constituency`
-- `subCounty`
-- `ward`
+There is no `Location` table. Each submission and mandate stores `country`, `county`, `constituency`, and `ward` as plain string columns. Valid Kenyan administrative names live in `@sautiledger/shared` as `KENYA_COUNTIES`, with helpers `findCounty(name)` and `findConstituency(county, constituency)` used by the cascading dropdowns on both the submit page and the mandates list page.
 
 Design note:
 
-The MVP can use explicit Kenya fields. Future expansion should move toward configurable administrative hierarchies.
+Future jurisdiction expansion can introduce a real `Location` table or pluggable boundary catalogs.
 
-## Evidence Attachment
+## Aspirational entities (not yet in the schema)
 
-Optional file submitted as supporting evidence.
+These are referenced in the brief but have not yet been implemented. Add them in Phase 4 / production hardening:
 
-Key fields:
-
-- `id`
-- `submissionId`
-- `storageKey`
-- `mediaType`
-- `metadataStripped`
-- `safetyReviewStatus`
-- `createdAt`
-
-Safety note:
-
-Warn users before upload. Strip metadata. Avoid public display until reviewed.
-
-## Audit Hash
-
-A proof that a submission existed at a point in time without revealing the submitter.
-
-Key fields:
-
-- `id`
-- `submissionId`
-- `hash`
-- `algorithm`
-- `createdAt`
-
-## User
-
-Authenticated users for admin and institution workflows.
-
-Roles:
-
-- `public`
-- `institution`
-- `admin`
-- `moderator`
-
-MVP auth can be simple, but role checks should be explicit.
+- **Evidence Attachment** — optional photo/audio/document linked to a submission. Will require metadata stripping, a moderation review state, and consent copy on upload.
+- **Audit Hash** — tamper-evident proof that a submission existed at a point in time without revealing the submitter.
+- **Authority / Institution Account** — replaces the shared `INSTITUTION_DEMO_KEY` with per-institution accounts and RBAC.
+- **Moderator / Admin User** — full role-based access for moderation queues.
 
 ## Dashboard Read Models
 
 The frontend should be dashboard-rich, so the API should expose aggregate read models rather than forcing the React app to compute everything from raw rows.
 
-Recommended read models:
+Recommended read models (current + planned):
 
-- Mandates by issue category.
-- Mandates by urgency.
-- Mandates by status.
-- Submission trends over time.
-- Top authorities by pending mandates.
-- Responsiveness Index by authority.
-- Evidence strength distribution.
-- Recent mandate activity.
+- Mandates by issue category — **shipped** (`/api/dashboard`, `/api/mandates/stats`).
+- Mandates by urgency — **shipped**.
+- Mandates by status — **shipped**.
+- Mandates by scope level (national / county / constituency / ward) — **shipped**.
+- Mandates by county / constituency / ward (top-N within current filters) — **shipped** on `/api/mandates/stats`.
+- Submission trends over time (30-day) — **shipped** on `/api/dashboard`.
+- Top upvoted mandates within a filter slice — **shipped**.
+- Responsiveness Index by scope — **planned**.
+- Evidence strength distribution — **planned**.
+- Recent mandate activity — partially via `lastActivityAt` sort.
 
-These can begin as service-layer aggregate queries using TypeORM query builders. Materialized views or cached aggregates can come later if needed.
+These are implemented as service-layer aggregate queries using TypeORM query builders. Cached aggregates can come later if needed.

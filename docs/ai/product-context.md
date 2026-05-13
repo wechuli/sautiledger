@@ -11,10 +11,15 @@ The MVP is Kenya-focused and should support English, Swahili, Sheng, and mixed-l
 - No SMS, USSD, or voice-note integration in the MVP.
 - Low-bandwidth participation is handled through a mobile-first web form.
 - The React frontend is served by the Express app for production-like runs.
-- Local development uses Docker Compose for the app/backend container and PostgreSQL.
-- Deployment targets Kubernetes.
-- The frontend uses shadcn/ui, lucide-react, and Recharts.
-- The backend uses Express, TypeScript, TypeORM, and PostgreSQL.
+- Local development runs the API and the Vite dev server in two terminals; Docker Compose runs the single-container production-like build.
+- Deployment target: containerized (Docker today; Kubernetes later).
+- The frontend uses shadcn-style components, lucide-react, Recharts, and react-router-dom.
+- The backend uses Express, TypeScript, TypeORM, and **SQLite** (file at `apps/api/data/sautiledger.db`, schema auto-created via `synchronize: true`). PostgreSQL is a future option once the schema stabilizes.
+- There is **no separate `Authority` entity**. Each mandate carries a `scopeLevel` (`national | county | constituency | ward`) plus the citizen's location; `responsibleOffice(scope, location)` in `@sautiledger/shared` derives the display label.
+- AI is split behind a service interface with two providers: a deterministic **mock** (default for local/demo) and a real **OpenAI** provider, selected via `AI_PROVIDER`.
+- Citizen accounts use phone + password with JWT sessions. Anonymous tracking codes still work without an account.
+- The institution console is gated by a shared `INSTITUTION_DEMO_KEY` header — not full RBAC.
+- Logged-in citizens can **upvote** mandates (one vote per citizen per mandate, toggleable).
 
 ## Core Problem
 
@@ -42,14 +47,17 @@ Into this:
 
 ## Core MVP Features
 
-- Low-bandwidth submission flow.
-- AI-powered mandate builder.
+- Low-bandwidth submission flow (web).
+- AI-powered mandate builder (mock by default, OpenAI when configured).
 - Community mandate clustering.
-- Anonymous submission integrity.
+- Anonymous submission integrity (anonymous tracking codes; salted SHA-256 phone hash for accounts).
 - Public mandate dashboard with charts, visual summaries, and clear icons.
-- Institution response portal.
-- Responsiveness Index.
-- Mandate export, initially Markdown or PDF.
+- Mandates list page with cascading scope filters (national / county / constituency / ward) and an in-page stats panel that re-aggregates to the active filter slice.
+- Citizen upvotes on mandates (one per citizen per mandate).
+- Institution response portal (acknowledgement, status updates, public response timeline).
+- Anonymous tracking page that resolves a tracking code to status and timeline.
+- Responsiveness Index (planned alongside dashboard analytics).
+- Mandate export (planned: Markdown/PDF).
 
 ## Kenya MVP Scope
 

@@ -16,18 +16,22 @@ Read the full product brief before making large product or architecture decision
 
 ## Current Repository State
 
-The repository is intentionally early-stage. Treat existing docs as product source of truth and keep implementation choices simple enough for an MVP.
+The MVP demo path has shipped. Treat the project brief as long-term product context, but use this file and `docs/ai/*` for the current implementation reality.
 
-Expected stack from the brief:
+Actual stack (May 2026):
 
-- Frontend: Vite, React, TypeScript, shadcn/ui, lucide-react, Recharts
-- Backend: Express.js, TypeScript, REST API, TypeORM
-- Runtime shape: Express serves the built React frontend and exposes API routes under `/api`
-- Local development: Docker Compose for PostgreSQL and the backend/app container
-- Deployment: Kubernetes
-- Database: PostgreSQL
-- AI: OpenAI API
-- Optional later: pgvector, background jobs, PWA/offline mode, PDF exports
+- Frontend: Vite, React 18, TypeScript, Tailwind, in-repo shadcn-style components, lucide-react, Recharts, react-router-dom 6.
+- Backend: Express 4, TypeScript, REST API under `/api`, TypeORM 0.3.x, Zod for validation.
+- **Database: SQLite** via `better-sqlite3` at `apps/api/data/sautiledger.db`. Schema is managed by TypeORM `synchronize: true` — there is no migrations directory. PostgreSQL is the future target.
+- Citizen auth: phone + bcrypt password → JWT. Anonymous submissions still work without an account.
+- Institution console: gated by a shared `INSTITUTION_DEMO_KEY` header (demo-grade, not RBAC).
+- AI: behind `processSubmissionWithAi` / `matchSubmissionToMandate` with `mock` (default) and `openai` providers selected via `AI_PROVIDER`.
+- Runtime: `npm run dev:api` + `npm run dev:web` for local; `docker compose up --build` for the production-like single-container build (Express serves the built React app).
+- Deployment: container is the deployable unit today. Kubernetes manifests are not yet committed.
+
+Shipped pages: `/`, `/submit`, `/mandates` (cascading scope filters + in-page Recharts stats), `/mandates/:id`, `/tracking`, `/me`, `/auth/...`, `/institution`.
+
+Not yet shipped: evidence uploads, audit-hash entity, moderation queue UI, mandate export (Markdown/PDF), Responsiveness Index dashboards, real institution accounts.
 
 ## Operating Principles
 
@@ -39,31 +43,36 @@ Expected stack from the brief:
 - Prefer simple, explicit code over clever abstractions until the product surface stabilizes.
 - Keep low-bandwidth users in mind: mobile-first UI, small payloads, resilient flows, clear language.
 - Make the frontend dashboard rich and data-forward, with useful graphs, strong visual hierarchy, and clear iconography.
-- Use shadcn/ui components, lucide-react icons, and Recharts for frontend UI and charts.
-- Use TypeORM entities and migrations for persistence. Avoid ad hoc SQL unless a query is materially clearer or more efficient.
+- Use Tailwind + the in-repo shadcn-style components (`apps/web/src/components/ui.tsx`), lucide-react icons, and Recharts.
+- Use TypeORM entities for persistence. Do **not** add a migrations directory while the schema is still managed by `synchronize: true` against SQLite — instead, when an entity changes during dev, delete `apps/api/data/sautiledger.db` and re-seed.
+- Do **not** introduce an `Authority` or `Location` table. Use the existing `scopeLevel` enum + `responsibleOffice(...)` helper, and `KENYA_COUNTIES` / `findCounty` / `findConstituency` from `@sautiledger/shared`.
 
 ## Domain Language
 
 Use these terms consistently:
 
 - `Submission`: an individual raw concern from a citizen or organizer.
-- `Community Mandate`: an anonymized cluster of related submissions that describes a shared priority.
-- `Authority`: the institution, office, or level of government likely responsible for a mandate.
-- `Institution Response`: a public acknowledgement, update, dispute, or resolution note.
-- `Responsiveness Index`: a measure of response behavior, not a ranking of problem-heavy areas.
+- `Community Mandate` (entity name: `Mandate`): an anonymized cluster of related submissions that describes a shared priority.
+- `ScopeLevel`: `national | county | constituency | ward` — carried by every submission and mandate. **Replaces** the `Authority` entity from the original brief.
+- `Responsible office`: derived display string from `responsibleOffice(scopeLevel, location)` in `@sautiledger/shared` (e.g. `"Nairobi County Government"`, `"Westlands Ward Administration"`).
+- `Institution Response`: a public acknowledgement, update, dispute, or resolution note posted via the institution console.
+- `Citizen`: a registered phone+password account; can upvote mandates and view their own submissions.
+- `Mandate Upvote`: one citizen → one mandate, toggleable; `Mandate.upvoteCount` is kept in sync.
+- `Responsiveness Index`: a planned measure of response behavior, not a ranking of problem-heavy areas.
 - `Evidence Strength`: a signal based on submission count, consistency, diversity, duplicate risk, and review status.
 
 ## MVP Workflow
 
-The core demo path should stay coherent:
+The core demo path is now live and should stay coherent:
 
-1. A citizen submits an informal concern in English, Swahili, Sheng, or mixed language.
+1. A citizen submits an informal concern in English, Swahili, Sheng, or mixed language. They pick the responsible scope (national / county / constituency / ward) and the relevant Kenyan boundaries via cascading dropdowns.
 2. The backend stores the original text safely and creates an anonymous tracking code.
-3. AI detects language, normalizes or translates, classifies the issue, detects urgency, suggests an authority, and drafts a formal mandate.
-4. Similar submissions are clustered into a Community Mandate.
-5. The public dashboard shows aggregated mandates by location, category, urgency, authority, and status.
-6. An institution user can acknowledge, respond, update status, or mark a mandate resolved.
-7. The Responsiveness Index reflects acknowledgement and resolution behavior.
+3. AI (mock by default, OpenAI when configured) detects language, normalizes/translates, classifies the issue, detects urgency, derives the responsible office from scope+location, and drafts a formal mandate.
+4. Similar submissions are clustered into a Community Mandate (LLM-assisted match).
+5. The public dashboard shows aggregated mandates; the mandates page lets users filter by scope, county, constituency, ward, category, urgency, and status, with an in-page Recharts stats panel that re-aggregates to the active filter slice.
+6. Logged-in citizens can upvote mandates.
+7. An institution user (with `INSTITUTION_DEMO_KEY`) can acknowledge, post a response, update status, or mark a mandate resolved.
+8. The Responsiveness Index reflects acknowledgement and resolution behavior (planned for the dashboard).
 
 ## Recommended Documentation Map
 
@@ -95,16 +104,19 @@ When implementing features that touch submissions, identity, evidence, or public
 
 ## Suggested First Implementation Path
 
-1. Scaffold a TypeScript monorepo or two-app layout with `apps/web` and `apps/api`.
-2. Add shared domain types in `packages/shared` if the project needs shared validation/types.
-3. Configure the API build so Express serves `apps/web/dist` in production.
-4. Add Docker Compose for the app container and PostgreSQL.
-5. Add TypeORM data source, entities, migrations, and seeds.
-6. Build the low-bandwidth submission form.
-7. Build an API endpoint that accepts submissions and returns an anonymous tracking code.
-8. Add a mock AI processing service before wiring the OpenAI API.
-9. Build dashboard views with shadcn/ui, lucide-react, and Recharts.
-10. Add Kubernetes manifests after the local container path is stable.
+The original scaffolding sequence below is **historical** — the repository now has a working API, web app, shared package, Docker build, TypeORM entities, mock + OpenAI processors, and Kenya seed data. New work should extend this rather than re-scaffold.
+
+For reference, the original sequence was:
+
+1. Scaffold a TypeScript monorepo with `apps/web`, `apps/api`, and `packages/shared`. ✅
+2. Configure the API build so Express serves `apps/web/dist` in production. ✅
+3. Add Docker Compose for the single container. ✅ (no separate DB container — SQLite is in a mounted volume)
+4. Add TypeORM data source, entities, and seed data. ✅ (no migrations — `synchronize: true`)
+5. Build the low-bandwidth submission form. ✅
+6. Add an API endpoint that accepts submissions and returns an anonymous tracking code. ✅
+7. Add a mock AI processing service before wiring the OpenAI API. ✅ (both providers exist)
+8. Build dashboard views with shadcn-style components, lucide-react, and Recharts. ✅
+9. Add Kubernetes manifests. ⏳ pending.
 
 ## Testing Expectations
 
@@ -115,12 +127,14 @@ When implementing features that touch submissions, identity, evidence, or public
 
 ## Environment Variables To Expect
 
-- `DATABASE_URL`
+- `DATABASE_PATH` (SQLite file path; default `data/sautiledger.db`)
 - `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+- `AI_PROVIDER` (`mock` | `openai`)
 - `SUBMISSION_HASH_SALT`
-- `SESSION_SECRET`
+- `SESSION_SECRET` (JWT signing for citizen sessions)
+- `INSTITUTION_DEMO_KEY` (shared key for the institution console)
 - `CORS_ORIGIN`
-- `AI_PROVIDER`
 - `PORT`
 - `NODE_ENV`
 

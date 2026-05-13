@@ -27,12 +27,13 @@ Owns technical shape.
 
 Responsibilities:
 
-- Keep the stack simple: Vite, React, TypeScript, shadcn/ui, lucide-react, Recharts, Express, TypeORM, PostgreSQL.
+- Keep the stack simple: Vite, React, TypeScript, Tailwind, shadcn-style components, lucide-react, Recharts, Express, TypeORM, and **SQLite** (with `synchronize: true`) for the MVP.
 - Maintain the single deployable app shape where Express serves the built React frontend and exposes API routes under `/api`.
-- Keep Docker Compose as the local app + database runtime and Kubernetes as the deployment target.
+- Keep Docker Compose as the production-like single-container runtime. Kubernetes is a future deployment target.
 - Protect boundaries between web UI, API, AI services, domain logic, and persistence.
-- Design jurisdiction-specific data as configuration.
-- Keep OpenAI calls behind typed service interfaces.
+- Keep responsible-office logic derived from `scopeLevel` + location via `@sautiledger/shared` rather than introducing an `Authority` table prematurely.
+- Keep AI calls behind the `processSubmissionWithAi` / `matchSubmissionToMandate` service interfaces with `mock` and `openai` providers selected via `AI_PROVIDER`.
+- When the schema stabilizes, plan the SQLite → PostgreSQL switch and a migrations directory.
 
 Useful outputs:
 
@@ -107,18 +108,18 @@ Owns API, persistence, and business rules.
 
 Responsibilities:
 
-- Build REST endpoints.
-- Use TypeORM entities, repositories, migrations, and query builders.
-- Implement validation, rate limiting, auth, and role checks.
-- Store submissions, mandates, authorities, responses, status history, and audit hashes.
-- Implement clustering and routing services.
-- Provide aggregate dashboard read models for the frontend.
+- Build REST endpoints under `/api`.
+- Use TypeORM entities, repositories, and query builders. (No migrations directory yet — schema is managed by `synchronize: true` against SQLite.)
+- Implement validation with Zod and explicit role checks (citizen JWT, institution shared key).
+- Store submissions, mandates, institution responses, status history, citizens, and mandate upvotes.
+- Implement clustering and scope-derived responsible-office logic.
+- Provide aggregate dashboard read models and filter-aware mandate stats for the frontend.
 
 Useful outputs:
 
 - Express routes.
-- TypeORM entities and migrations.
-- Service tests.
+- TypeORM entities.
+- Service tests (vitest).
 - Seed data.
 
 ## Demo Agent
@@ -127,15 +128,15 @@ Owns hackathon/pitch readiness.
 
 Responsibilities:
 
-- Keep the demo path sharp from citizen submission to institution response.
-- Create sample Kenya data and realistic scenarios.
-- Make sure the app can run locally with mock services.
-- Make sure `docker compose up` runs the app and PostgreSQL.
-- Maintain demo scripts and seed commands.
+- Keep the demo path sharp from citizen submission to institution response and upvote.
+- Maintain Kenya seed data and realistic scenarios in `apps/api/src/scripts/seed-demo.ts`.
+- Make sure the app can run locally with mock services (`AI_PROVIDER=mock`).
+- Make sure `docker compose up --build` runs the single-container app.
+- Maintain demo scripts and `npm run seed:demo --workspace @sautiledger/api`.
 
 Useful outputs:
 
 - Demo data.
 - Walkthrough scripts.
 - Screenshots.
-- Export examples.
+- Export examples (when export ships).

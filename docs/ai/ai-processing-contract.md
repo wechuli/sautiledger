@@ -2,6 +2,17 @@
 
 This document defines how SautiLedger should transform raw informal submissions into structured civic data.
 
+## Implementation today
+
+The API exposes a single typed entry point — `processSubmissionWithAi(input)` in `apps/api/src/services/ai-processing.ts` — backed by two providers selected via `AI_PROVIDER`:
+
+- `mock` (default) — a deterministic keyword-based processor used for local development, tests, and the demo. Covered by `ai-processing.test.ts`.
+- `openai` — calls the OpenAI Chat Completions API with a strict JSON-schema response format and low temperature (`apps/api/src/services/ai-processing.openai.ts`). Requires `OPENAI_API_KEY` and `OPENAI_MODEL`.
+
+Clustering uses the same split: `matchSubmissionToMandate(...)` in `mandate-clustering.ts` calls the configured provider to decide whether a new submission belongs to an existing Community Mandate.
+
+Both providers must return the same JSON shape described below. The original submission text is always preserved separately from AI-generated fields.
+
 ## Input
 
 ```json
@@ -92,7 +103,7 @@ The AI processor should:
 
 ## Mock Processor Guidance
 
-Before the OpenAI API is wired, implement a deterministic mock processor using keyword/rule matching.
+The deterministic mock processor (default for local/demo) uses keyword/rule matching and returns the same shape as the OpenAI provider so callers do not need to branch.
 
 Minimum mock categories:
 
@@ -103,4 +114,4 @@ Minimum mock categories:
 - Security: `police`, `theft`, `harassment`, `unsafe`
 - Sanitation: `waste`, `garbage`, `sewer`, `choo`, `toilet`
 
-The mock processor should still return the same shape as the real processor.
+The mock processor is the source of truth for tests; if the OpenAI provider drifts from the contract, the mock contract wins.

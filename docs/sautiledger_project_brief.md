@@ -18,6 +18,24 @@ Domain: **sautiledger.org**
 
 ---
 
+## 1a. Implementation Status (May 2026)
+
+This brief was written before the build started. The MVP has now shipped its core demo path. The sections below are kept for product context, but the **current implementation** differs from the original sketch in a few important ways:
+
+- **Database is SQLite**, not PostgreSQL. The DB lives at `apps/api/data/sautiledger.db` and the schema is auto-created by TypeORM `synchronize: true` (no migrations directory yet). Postgres is the planned next step once the schema stabilizes.
+- **No `Authority` entity.** Every submission and mandate carries a `scopeLevel` (`national | county | constituency | ward`). The responsible office (e.g. "Nairobi County Government", "Westlands Ward Administration") is derived from `scopeLevel` + the citizen's location via `responsibleOffice(...)` in `@sautiledger/shared`.
+- **No `Location` or `IssueCategory` tables.** Categories are an enum constant (`MANDATE_CATEGORIES`); Kenyan counties / constituencies / wards are static data (`KENYA_COUNTIES`) used by cascading dropdowns on the submit and mandates pages.
+- **Citizen accounts** (phone + bcrypt password → JWT) are implemented for tracking-code recovery, "My submissions", and **upvoting** mandates. Anonymous submissions still work without an account.
+- **Institution console** is gated by a shared `INSTITUTION_DEMO_KEY` header (demo-grade), not full RBAC.
+- **AI** runs behind a single typed service interface with two providers selected via `AI_PROVIDER`: `mock` (deterministic keyword rules, default) and `openai` (Chat Completions with strict JSON schema).
+- **Mandates page** has cascading scope filters and an in-page Recharts stats panel (category / urgency / status / top wards / most upvoted) that re-aggregates to the active filter slice.
+- **Kubernetes manifests** are not yet committed. The deployable unit today is the single container produced by the root `Dockerfile` / `docker-compose.yml`.
+- **Not yet shipped:** evidence uploads, audit-hash entity, moderation queue UI, mandate export (Markdown/PDF), Responsiveness Index dashboards, real institution accounts.
+
+The sections below describe the long-term product vision. Where they conflict with this status note, the status note wins.
+
+---
+
 ## 2. Capstone Theme Alignment
 
 The capstone theme is **PeaceTech**, with a focus on people-centric technology that helps communities live more peacefully. SautiLedger aligns strongly with the theme because it addresses one of the root causes of civic tension: communities feeling unheard, ignored, or excluded from decision-making.
@@ -496,52 +514,70 @@ This makes the platform more balanced and peace-oriented.
 
 ## 10. Technology Stack
 
+> Status note: this section describes the long-term target. The current MVP implementation is summarized in **§1a. Implementation Status (May 2026)**. The biggest deltas are SQLite instead of PostgreSQL, no `Authority` entity, and no Kubernetes manifests yet.
+
 ### Frontend
 
 - **Vite**
-- **React**
+- **React 18**
 - **TypeScript**
+- **Tailwind CSS** with a small in-repo shadcn-style component set (`apps/web/src/components/ui.tsx`)
+- **lucide-react**
+- **Recharts**
+- **react-router-dom 6**
 - Mobile-first responsive UI
-- Lightweight CSS or component library
-- Optional PWA support for offline collection
+- Optional PWA support for offline collection (future)
 
-Possible frontend sections:
+Frontend pages currently shipped:
 
-- Public landing page
-- Submit concern page
-- Public mandate dashboard
-- Mandate detail page
-- Institution portal
-- Admin/moderator portal
+- Public landing dashboard (`/`)
+- Submit a concern (`/submit`)
+- Mandates list with cascading scope filters and in-page stats (`/mandates`)
+- Mandate detail with timeline and upvote (`/mandates/:id`)
+- Anonymous tracking lookup (`/tracking`)
+- Citizen "My submissions" (`/me`)
+- Citizen sign in / register (`/auth/...`)
+- Institution console gated by shared key (`/institution`)
 
 ### Backend
 
-- **Express.js**
+- **Express.js 4**
 - **TypeScript**
-- REST API
-- Authentication for admin and institution users
-- Input validation
-- Rate limiting
-- AI processing service layer
+- REST API under `/api`
+- **TypeORM 0.3.x**
+- **Zod** for request validation
+- **jsonwebtoken** for citizen sessions; **bcrypt** for password hashing
+- AI processing service layer with `mock` + `openai` providers
 - Mandate clustering service
-- Audit/hash service
+- Privacy / hashing service
+- Citizen authentication middleware + shared-key institution middleware
 
 ### Database
 
-- **PostgreSQL**
+- **SQLite** (`better-sqlite3`) for the MVP, with TypeORM `synchronize: true`. File path is configurable via `DATABASE_PATH` (default `apps/api/data/sautiledger.db`).
+- **PostgreSQL** is the planned production target once the schema stabilizes. Entities are written to be portable.
 
-Key database entities:
+Key database entities (current):
 
-- Users
-- Submissions
-- Mandate clusters
-- Issue categories
-- Locations
-- Authorities
-- Institution responses
-- Audit hashes
-- Evidence attachments
-- Status history
+- `Submission`
+- `Mandate` (the "mandate cluster" from the brief)
+- `InstitutionResponse`
+- `StatusHistory`
+- `Citizen`
+- `MandateUpvote`
+
+Intentionally **not** in the schema today (data lives in `@sautiledger/shared` instead):
+
+- Issue categories (enum)
+- Kenyan administrative boundaries (static data)
+- Authorities / responsible offices (derived from `scopeLevel` + location)
+
+Aspirational entities (Phase 4+):
+
+- Evidence Attachments
+- Audit Hashes
+- Authority / Institution Accounts (real RBAC)
+- Moderator / Admin Users
 
 ### AI Layer
 
@@ -567,38 +603,31 @@ Use cases:
 
 ### Authentication
 
-For MVP:
+For MVP (current):
 
-- Email/password or simple admin login
-- Role-based access control
-
-Roles:
-
-- Public user
-- Institution user
-- Admin/moderator
+- **Citizen accounts**: phone + bcrypt password → JWT bearer token signed with `SESSION_SECRET`. Used for tracking-code recovery, "My submissions", and upvoting.
+- **Institution console**: shared `INSTITUTION_DEMO_KEY` sent as `X-Institution-Key`. Demo-grade only.
+- Public submission and tracking-code lookup remain anonymous and require no account.
 
 Future:
 
-- Magic link login
-- Organization-level accounts
-- Multi-factor authentication
-- Stronger identity verification for official institutions
+- Per-institution accounts and full role-based access control (`institution`, `admin`, `moderator`).
+- Magic link login.
+- Multi-factor authentication.
+- Stronger identity verification for official institutions.
 
 ### Deployment
 
-Possible deployment approach:
+Current (MVP):
 
-- Frontend: Vercel, Netlify, Cloudflare Pages, or self-hosted static hosting
-- Backend: Render, Railway, Fly.io, VPS, or containerized deployment
-- Database: Managed PostgreSQL or self-hosted PostgreSQL
+- Single container built by the root `Dockerfile`. `docker compose up --build` serves both the API and the built React app from Express on port `3000`.
+- SQLite file persisted in a mounted volume at `/app/data` inside the container.
+
+Future:
+
+- Migrate persistence to managed PostgreSQL.
+- Add Kubernetes manifests (deployment, service, ingress, config, secrets).
 - Domain: **sautiledger.org**
-
-Given the MVP nature, the simplest path is acceptable:
-
-- Frontend on Vercel or Cloudflare Pages
-- Backend on Render/Fly.io/Railway
-- PostgreSQL managed by the same provider or Neon/Supabase
 
 ---
 
@@ -609,33 +638,37 @@ Citizen / Organizer
         |
         v
 Submission Interface
-(Web / SMS-style / USSD-style / Voice transcript)
+(Web form today; SMS/USSD/voice planned)
         |
         v
-Express API
+Express API (single container; serves built React frontend in production-like runs)
         |
         +--> Privacy & Hashing Service
         |
-        +--> AI Processing Service
-        |       - translation
-        |       - classification
-        |       - urgency detection
-        |       - mandate generation
+        +--> AI Processing Service (mock | openai, selected by AI_PROVIDER)
+        |       - language detection
+        |       - normalization / translation
+        |       - classification + urgency
+        |       - mandate text generation
         |
-        +--> Clustering Service
-        |       - match to existing mandate
-        |       - create new mandate if needed
+        +--> Mandate Clustering Service
+        |       - match submission to existing mandate (LLM-assisted)
+        |       - create new mandate if no match
+        |
+        +--> Citizen Auth (JWT) + Institution shared-key middleware
         |
         v
-PostgreSQL
+SQLite (apps/api/data/sautiledger.db)
         |
         v
-Public Dashboard / Institution Portal / Admin Portal
+Public Dashboard / Mandates Page (with filter-aware stats) / Mandate Detail / Tracking / Institution Console
 ```
 
 ---
 
 ## 12. Suggested Data Model
+
+> Status note: this section is the original sketch. See **§1a** and `docs/ai/domain-model.md` for the entities that actually exist in code today. The shipped schema is intentionally smaller — no `authorities`, `issue_categories`, or `locations` tables (those live in `@sautiledger/shared`).
 
 ### submissions
 
@@ -649,17 +682,19 @@ Fields:
 - original_text
 - normalized_text
 - detected_language
-- location_id
-- issue_category_id
+- country, county, constituency, ward (string columns; no `Location` table)
+- category (enum string)
 - urgency
-- mandate_cluster_id
+- scope_level (`national | county | constituency | ward`)
+- mandate_id
 - submission_hash
-- created_at
+- ai_processing_result (JSON)
 - processing_status
+- created_at, updated_at
 
-### mandate_clusters
+### mandates (community mandates)
 
-Stores grouped community mandates.
+Stores grouped community mandates. Implemented as the `Mandate` entity.
 
 Fields:
 
@@ -667,31 +702,18 @@ Fields:
 - title
 - summary
 - formal_mandate_text
-- issue_category_id
-- location_scope
-- responsible_authority_id
+- category (enum string)
+- scope_level
+- country, county, constituency, ward
+- responsible_office (cached display string; can be re-derived)
 - urgency
 - status
 - submission_count
 - evidence_strength
+- upvote_count
 - first_reported_at
 - last_activity_at
-- created_at
-- updated_at
-
-### authorities
-
-Stores responsible institutions or offices.
-
-Fields:
-
-- id
-- name
-- level
-- jurisdiction
-- description
-- contact_email
-- verified
+- created_at, updated_at
 
 ### institution_responses
 
@@ -700,11 +722,9 @@ Stores public responses from institutions.
 Fields:
 
 - id
-- mandate_cluster_id
-- authority_id
-- responder_user_id
+- mandate_id
 - response_text
-- status_update
+- status_update (optional new mandate status)
 - expected_resolution_date
 - created_at
 
@@ -715,16 +735,39 @@ Stores the timeline of mandate updates.
 Fields:
 
 - id
-- mandate_cluster_id
+- mandate_id
 - old_status
 - new_status
-- changed_by
 - note
 - created_at
 
-### issue_categories
+### citizens
 
-Examples:
+Registered citizen accounts (used for tracking-code recovery, "My submissions", and upvoting).
+
+Fields:
+
+- id
+- phone_e164
+- phone_hash (salted SHA-256 of phone using `SUBMISSION_HASH_SALT`)
+- password_hash (bcrypt)
+- display_name (optional, never shown publicly)
+- created_at, updated_at
+
+### mandate_upvotes
+
+Unique on `(mandate_id, citizen_id)`. `mandates.upvote_count` is kept in sync as votes toggle.
+
+Fields:
+
+- id
+- mandate_id
+- citizen_id
+- created_at
+
+### Issue categories (no DB table)
+
+Live in `@sautiledger/shared` as the `MANDATE_CATEGORIES` constant:
 
 - Water
 - Roads
@@ -739,18 +782,18 @@ Examples:
 - Resource exploitation
 - Other
 
-### locations
+### Locations (no DB table)
 
-Initial Kenya-focused structure:
+Kenyan counties → constituencies → wards live as static data in `@sautiledger/shared` (`KENYA_COUNTIES`), with helpers `findCounty(name)` and `findConstituency(county, constituency)` driving the cascading dropdowns on the submit and mandates pages.
 
-- id
-- country
-- county
-- constituency
-- sub_county
-- ward
+### Aspirational tables (Phase 4+)
 
-Future jurisdiction expansion can generalize this into a flexible administrative hierarchy.
+Not yet implemented:
+
+- `evidence_attachments`
+- `audit_hashes`
+- `authorities` / institution accounts (real RBAC)
+- `users` (admin / moderator roles)
 
 ---
 
@@ -898,46 +941,59 @@ Only the local configuration should change.
 
 ## 17. Suggested Build Phases
 
-### Phase 1: Core Submission and AI Processing
+> Status note: as of May 2026, **Phases 1–3 are shipped**, Phase 4 is partial (hashing + tracking codes done; rate limiting, moderation queue, and audit hashes pending), and Phase 5 is partial (seed data + Recharts done; export and Kubernetes pending). See `docs/ai/implementation-plan.md` for the up-to-date phase status.
 
-- Create frontend submission form
-- Create Express API
-- Store submissions in PostgreSQL
-- Integrate OpenAI API
-- Generate structured issue data
-- Generate formal mandate text
+### Phase 1: Core Submission and AI Processing — **shipped**
 
-### Phase 2: Mandate Clustering and Dashboard
+- Frontend submission form with cascading Kenya geography dropdowns.
+- Express API persisting submissions via TypeORM.
+- Mock AI processor (default) + OpenAI processor behind `AI_PROVIDER`.
+- Structured AI output stored alongside the original text.
+- Anonymous tracking codes returned to the citizen.
 
-- Group similar submissions
-- Create mandate cluster pages
-- Build public dashboard
-- Add status tracking
-- Add basic analytics
+### Phase 2: Mandate Clustering and Dashboard — **shipped**
 
-### Phase 3: Institution Portal
+- `matchSubmissionToMandate` clusters similar submissions into a Community Mandate.
+- Public dashboard with category / urgency / status / scope / county breakdowns and a 30-day trend.
+- Mandates list page with cascading scope filters and an in-page Recharts stats panel that re-aggregates to the active slice.
+- Mandate detail page with timeline.
 
-- Add institution login
-- Show assigned mandates
-- Allow acknowledgement and response
-- Add status updates
-- Track response time
+### Phase 3: Institution Portal — **shipped (demo-grade)**
 
-### Phase 4: Privacy and Integrity Enhancements
+- Institution console gated by shared `INSTITUTION_DEMO_KEY`.
+- Acknowledge / update status / post public response.
+- Status history timeline visible on the public mandate page.
+- Citizen upvotes on mandates.
 
-- Add hashing service
-- Add anonymous tracking code
-- Add evidence strength score
-- Add moderation queue
-- Add rate limiting
+### Phase 4: Privacy and Integrity Enhancements — **partial**
 
-### Phase 5: Demo Polish
+Shipped:
 
-- Add landing page
-- Add sample Kenya data
-- Add charts
-- Add exportable mandate report
-- Add strong demo script
+- Salted SHA-256 hashing of phone numbers (`SUBMISSION_HASH_SALT`).
+- Anonymous tracking codes for every submission.
+- Aggregate-only public surfaces (no raw submissions exposed).
+
+Pending:
+
+- Rate limiting and abuse checks.
+- Moderation queue for risky/sensitive content.
+- Audit-hash entity for tamper-evident proof of submission existence.
+- Real institution accounts and RBAC (replacing the shared key).
+
+### Phase 5: Demo Polish — **partial**
+
+Shipped:
+
+- Kenya seed data (`npm run seed:demo --workspace @sautiledger/api`): 3 demo citizens + 3 demo mandates.
+- Dashboard + mandates-page Recharts panels.
+- Single-container Docker build.
+
+Pending:
+
+- Mandate export (Markdown / PDF).
+- Responsiveness Index dashboards.
+- Demo script document.
+- Kubernetes manifests.
 
 ---
 
