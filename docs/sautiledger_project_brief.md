@@ -1073,4 +1073,3 @@ On the public dashboard, communities can see their top priorities, where issues 
 For the MVP, we are focusing on Kenya to keep the scope grounded. But the architecture is designed to expand to other jurisdictions by changing administrative boundaries, languages, responsibility mappings, and civic templates.
 
 SautiLedger is not just a complaint box. It is public participation with receipts: a safer, structured way for communities to turn voice into accountability before unresolved grievances become conflict.
-
