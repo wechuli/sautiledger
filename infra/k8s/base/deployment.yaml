@@ -23,6 +23,10 @@ spec:
         app.kubernetes.io/name: sautiledger
         app.kubernetes.io/component: app
     spec:
+      # Pull from GHCR. The secret holds a docker config json with a GitHub
+      # PAT (or fine-grained token) that has `read:packages` scope.
+      imagePullSecrets:
+        - name: ghcr-pull
       # Match the non-root UID/GID baked into the image so writes to the
       # mounted PV go through cleanly on most CSI drivers.
       securityContext:
@@ -32,7 +36,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: app
-          image: docker.io/wechuli/sautiledger:latest
+          image: ghcr.io/wechuli/sautiledger:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
