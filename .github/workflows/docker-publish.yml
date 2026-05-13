@@ -7,13 +7,15 @@ on:
     workflow_dispatch:
 
 env:
-    IMAGE: docker.io/wechuli/sautiledger
+    DOCKERHUB_IMAGE: docker.io/wechuli/sautiledger
+    GHCR_IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
     build-and-push:
-        runs-on: ubuntu-latest
+        runs-on: macos-latest
         permissions:
             contents: read
+            packages: write
         steps:
             - name: Checkout
               uses: actions/checkout@v6
@@ -30,11 +32,20 @@ jobs:
                   username: ${{ vars.DOCKERHUB_USERNAME }}
                   password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+            - name: Log in to GitHub Container Registry
+              uses: docker/login-action@v4
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
             - name: Extract metadata (tags, labels)
               id: meta
               uses: docker/metadata-action@v5
               with:
-                  images: ${{ env.IMAGE }}
+                  images: |
+                      ${{ env.DOCKERHUB_IMAGE }}
+                      ${{ env.GHCR_IMAGE }}
                   tags: |
                       type=ref,event=branch
                       type=semver,pattern={{version}}
