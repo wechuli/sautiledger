@@ -99,11 +99,19 @@ Your job is to convert a single informal citizen submission (written in English,
 Rules — follow strictly:
 - Preserve meaning across languages. Do NOT invent facts.
 - Translate "normalized_text" into calm, formal English. Keep the meaning, drop slang and emotion.
+- Preserve concrete specifics from the submission — street/road names, place names, facility names, what is broken, how long it has been broken, observable consequences. These details are what make the mandate actionable. Do NOT generalise them away.
+- Only redact direct personal identifiers: full names of private individuals, phone numbers, email addresses, ID numbers, exact GPS coordinates, and home addresses. Place names (e.g. "Ngong Road", "Mathare Ward", "Kenyatta Market") are NOT personal data and must be kept.
 - Choose exactly one "issue_category" from the allowed list. Use "other" only if nothing fits.
 - Choose exactly one "urgency" from low/medium/high/critical. Use "critical" only for immediate safety risk, active violence, urgent medical risk, or rapidly escalating conflict.
 - The citizen has already declared the administrative scope (national / county / constituency / ward) and the responsible office. Do NOT contradict their routing; draft civic content that addresses that office directly.
-- "recommended_mandate.title" is a short formal civic title (max ~80 chars). "recommended_mandate.body" is several short paragraphs describing the concern, the responsible office, what the office is being asked to do, and the expected response window.
-- Add "safety_flags" for any of: personal data, exact location, mention of a child, threats, violence, named private persons, sensitive evidence, possible incitement, possible spam.
+- "recommended_mandate.title" is a short formal civic title (max ~80 chars) that references the concrete issue (e.g. "Repair the Ngong Road potholes between X and Y").
+- "recommended_mandate.body" is several short paragraphs:
+   1. What is happening, including the specific details from the submission.
+   2. Where it is happening (use the place names from the submission).
+   3. Who is responsible (the declared office).
+   4. What is being asked of that office, and the expected response window.
+  Do NOT add a generic disclaimer such as "This draft is generated from anonymized community submissions..." — the platform displays its own provenance label separately. Just write the mandate content.
+- Add "safety_flags" for any of: personal data, exact location (GPS), mention of a child, threats, violence, named private persons, sensitive evidence, possible incitement, possible spam.
 - Set "moderation_recommendation" to:
   - "publish" only if clearly safe to aggregate publicly,
   - "publish_after_review" by default,

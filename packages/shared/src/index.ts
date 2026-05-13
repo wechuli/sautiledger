@@ -245,6 +245,7 @@ export type MandateSummary = {
   responsibleOffice: string;
   submissionCount: number;
   evidenceStrength: number;
+  upvoteCount: number;
   firstReportedAt: string;
   lastActivityAt: string;
 };
@@ -269,6 +270,7 @@ export type StatusHistoryEntry = {
 
 export type MandateDetail = MandateSummary & {
   formalMandateText: string;
+  youUpvoted: boolean;
   responses: InstitutionResponseView[];
   statusHistory: StatusHistoryEntry[];
 };
@@ -289,4 +291,21 @@ export type DashboardStats = {
   byCounty: Array<{ county: string; count: number }>;
   byScope: Array<{ scope: ScopeLevel; count: number }>;
   trend30d: Array<{ date: string; count: number }>;
+};
+
+// Aggregates for a filtered slice of mandates (used by the mandates page).
+export type MandateAggregateStats = {
+  total: number;
+  byCategory: Array<{ category: MandateCategory; count: number }>;
+  byUrgency: Array<{ urgency: Urgency; count: number }>;
+  byStatus: Array<{ status: MandateStatus; count: number }>;
+  byScope: Array<{ scope: ScopeLevel; count: number }>;
+  byCounty: Array<{ county: string; count: number }>;
+  byConstituency: Array<{ constituency: string; count: number }>;
+  byWard: Array<{ ward: string; count: number }>;
+  topUpvoted: Array<{
+    id: string;
+    title: string;
+    upvoteCount: number;
+  }>;
 };

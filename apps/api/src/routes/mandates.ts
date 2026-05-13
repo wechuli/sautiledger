@@ -7,15 +7,20 @@ import {
   SCOPE_LEVELS,
   URGENCY_LEVELS,
   responsibleOffice,
+  type MandateAggregateStats,
+  type MandateCategory,
   type MandateDetail,
   type MandateStatus,
   type MandateSummary,
+  type ScopeLevel,
+  type Urgency,
 } from "@sautiledger/shared";
 import { AppDataSource } from "../data-source.js";
 import { InstitutionResponse } from "../entities/institution-response.entity.js";
 import { Mandate } from "../entities/mandate.entity.js";
+import { MandateUpvote } from "../entities/mandate-upvote.entity.js";
 import { StatusHistory } from "../entities/status-history.entity.js";
-import { requireInstitutionKey } from "../middleware/auth.js";
+import { optionalCitizen, requireCitizen, requireInstitutionKey } from "../middleware/auth.js";
 import { env } from "../config/env.js";
 
 export const mandatesRouter = Router();
@@ -29,7 +34,10 @@ const listQuerySchema = z.object({
   constituency: z.string().optional(),
   ward: z.string().optional(),
   q: z.string().min(1).max(200).optional(),
-  sort: z.enum(["recent", "evidence", "urgency"]).optional().default("recent"),
+  sort: z
+    .enum(["recent", "evidence", "urgency", "upvotes"])
+    .optional()
+    .default("recent"),
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
 });
@@ -56,6 +64,7 @@ function toMandateSummary(m: Mandate): MandateSummary {
       }),
     submissionCount: m.submissionCount,
     evidenceStrength: m.evidenceStrength,
+    upvoteCount: m.upvoteCount ?? 0,
     firstReportedAt: m.firstReportedAt.toISOString(),
     lastActivityAt: m.lastActivityAt.toISOString(),
   };
@@ -97,6 +106,12 @@ mandatesRouter.get("/", async (req, res, next) => {
           "DESC",
         );
         break;
+      case "upvotes":
+        qb.orderBy("m.upvoteCount", "DESC").addOrderBy(
+          "m.lastActivityAt",
+          "DESC",
+        );
+        break;
       case "urgency":
         qb.addSelect(
           "CASE m.urgency WHEN 'critical' THEN 4 WHEN 'high' THEN 3 WHEN 'medium' THEN 2 WHEN 'low' THEN 1 ELSE 0 END",
@@ -123,7 +138,174 @@ mandatesRouter.get("/", async (req, res, next) => {
   }
 });
 
-mandatesRouter.get("/:id", async (req, res, next) => {
+// ---------------------------------------------------------------------
+// Aggregations for the mandates page. Same filter shape as the list
+// endpoint; returned counts always reflect the active filter set so the
+// charts on the page update with the dropdowns.
+// IMPORTANT: this route MUST be declared before "/:id" so Express does
+// not interpret "stats" as a UUID.
+// ---------------------------------------------------------------------
+
+const statsQuerySchema = z.object({
+  category: z.enum(MANDATE_CATEGORIES).optional(),
+  urgency: z.enum(URGENCY_LEVELS).optional(),
+  status: z.enum(MANDATE_STATUSES).optional(),
+  scopeLevel: z.enum(SCOPE_LEVELS).optional(),
+  county: z.string().optional(),
+  constituency: z.string().optional(),
+  ward: z.string().optional(),
+  q: z.string().min(1).max(200).optional(),
+});
+
+mandatesRouter.get("/stats", async (req, res, next) => {
+  try {
+    const q = statsQuerySchema.parse(req.query);
+    const repo = AppDataSource.getRepository(Mandate);
+
+    // Helper that re-applies the same WHERE clauses to a fresh QB.
+    const applyFilters = (alias: string) => {
+      const qb = repo.createQueryBuilder(alias);
+      if (q.category)
+        qb.andWhere(`${alias}.category = :category`, { category: q.category });
+      if (q.urgency)
+        qb.andWhere(`${alias}.urgency = :urgency`, { urgency: q.urgency });
+      if (q.status)
+        qb.andWhere(`${alias}.status = :status`, { status: q.status });
+      if (q.scopeLevel)
+        qb.andWhere(`${alias}.scopeLevel = :scopeLevel`, {
+          scopeLevel: q.scopeLevel,
+        });
+      if (q.county)
+        qb.andWhere(`${alias}.county = :county`, { county: q.county });
+      if (q.constituency)
+        qb.andWhere(`${alias}.constituency = :constituency`, {
+          constituency: q.constituency,
+        });
+      if (q.ward) qb.andWhere(`${alias}.ward = :ward`, { ward: q.ward });
+      if (q.q) {
+        qb.andWhere(
+          new Brackets((b) => {
+            b.where(`${alias}.title LIKE :q`, { q: `%${q.q}%` }).orWhere(
+              `${alias}.summary LIKE :q`,
+              { q: `%${q.q}%` },
+            );
+          }),
+        );
+      }
+      return qb;
+    };
+
+    const toN = (s: string | number) =>
+      typeof s === "number" ? s : Number(s);
+
+    const [
+      total,
+      byCategoryRaw,
+      byUrgencyRaw,
+      byStatusRaw,
+      byScopeRaw,
+      byCountyRaw,
+      byConstituencyRaw,
+      byWardRaw,
+      topUpvotedRaw,
+    ] = await Promise.all([
+      applyFilters("m").getCount(),
+      applyFilters("m")
+        .select("m.category", "category")
+        .addSelect("COUNT(*)", "count")
+        .groupBy("m.category")
+        .getRawMany<{ category: MandateCategory; count: string }>(),
+      applyFilters("m")
+        .select("m.urgency", "urgency")
+        .addSelect("COUNT(*)", "count")
+        .groupBy("m.urgency")
+        .getRawMany<{ urgency: Urgency; count: string }>(),
+      applyFilters("m")
+        .select("m.status", "status")
+        .addSelect("COUNT(*)", "count")
+        .groupBy("m.status")
+        .getRawMany<{ status: MandateStatus; count: string }>(),
+      applyFilters("m")
+        .select("m.scope_level", "scope")
+        .addSelect("COUNT(*)", "count")
+        .groupBy("m.scope_level")
+        .getRawMany<{ scope: ScopeLevel; count: string }>(),
+      applyFilters("m")
+        .select("m.county", "county")
+        .addSelect("COUNT(*)", "count")
+        .andWhere("m.county IS NOT NULL")
+        .groupBy("m.county")
+        .orderBy("count", "DESC")
+        .limit(15)
+        .getRawMany<{ county: string; count: string }>(),
+      applyFilters("m")
+        .select("m.constituency", "constituency")
+        .addSelect("COUNT(*)", "count")
+        .andWhere("m.constituency IS NOT NULL")
+        .groupBy("m.constituency")
+        .orderBy("count", "DESC")
+        .limit(15)
+        .getRawMany<{ constituency: string; count: string }>(),
+      applyFilters("m")
+        .select("m.ward", "ward")
+        .addSelect("COUNT(*)", "count")
+        .andWhere("m.ward IS NOT NULL")
+        .groupBy("m.ward")
+        .orderBy("count", "DESC")
+        .limit(15)
+        .getRawMany<{ ward: string; count: string }>(),
+      applyFilters("m")
+        .select(["m.id AS id", "m.title AS title", "m.upvote_count AS upvoteCount"])
+        .orderBy("m.upvote_count", "DESC")
+        .addOrderBy("m.lastActivityAt", "DESC")
+        .limit(5)
+        .getRawMany<{ id: string; title: string; upvoteCount: string }>(),
+    ]);
+
+    const stats: MandateAggregateStats = {
+      total,
+      byCategory: byCategoryRaw.map((r) => ({
+        category: r.category,
+        count: toN(r.count),
+      })),
+      byUrgency: byUrgencyRaw.map((r) => ({
+        urgency: r.urgency,
+        count: toN(r.count),
+      })),
+      byStatus: byStatusRaw.map((r) => ({
+        status: r.status,
+        count: toN(r.count),
+      })),
+      byScope: byScopeRaw.map((r) => ({
+        scope: r.scope,
+        count: toN(r.count),
+      })),
+      byCounty: byCountyRaw.map((r) => ({
+        county: r.county,
+        count: toN(r.count),
+      })),
+      byConstituency: byConstituencyRaw.map((r) => ({
+        constituency: r.constituency,
+        count: toN(r.count),
+      })),
+      byWard: byWardRaw.map((r) => ({
+        ward: r.ward,
+        count: toN(r.count),
+      })),
+      topUpvoted: topUpvotedRaw.map((r) => ({
+        id: r.id,
+        title: r.title,
+        upvoteCount: toN(r.upvoteCount),
+      })),
+    };
+
+    res.json(stats);
+  } catch (err) {
+    next(err);
+  }
+});
+
+mandatesRouter.get("/:id", optionalCitizen, async (req, res, next) => {
   try {
     const id = z.string().uuid().parse(req.params.id);
     const mandate = await AppDataSource.getRepository(Mandate).findOne({
@@ -134,7 +316,7 @@ mandatesRouter.get("/:id", async (req, res, next) => {
       return;
     }
 
-    const [responses, history] = await Promise.all([
+    const [responses, history, youUpvoted] = await Promise.all([
       AppDataSource.getRepository(InstitutionResponse).find({
         where: { mandateId: id },
         order: { createdAt: "ASC" },
@@ -143,11 +325,19 @@ mandatesRouter.get("/:id", async (req, res, next) => {
         where: { mandateId: id },
         order: { createdAt: "ASC" },
       }),
+      req.citizenId
+        ? AppDataSource.getRepository(MandateUpvote)
+            .findOne({
+              where: { mandateId: id, citizenId: req.citizenId },
+            })
+            .then((u) => !!u)
+        : Promise.resolve(false),
     ]);
 
     const detail: MandateDetail = {
       ...toMandateSummary(mandate),
       formalMandateText: mandate.formalMandateText,
+      youUpvoted,
       responses: responses.map((r) => ({
         id: r.id,
         responderLabel: r.responderLabel,
@@ -308,6 +498,80 @@ mandatesRouter.patch(
         return;
       }
       res.json({ id: result.id, status: result.status });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ---------------------------------------------------------------------
+// Upvotes — one per (citizen, mandate). POST toggles.
+// ---------------------------------------------------------------------
+
+mandatesRouter.get(
+  "/:id/upvote",
+  optionalCitizen,
+  async (req, res, next) => {
+    try {
+      const id = z.string().uuid().parse(req.params.id);
+      const mandate = await AppDataSource.getRepository(Mandate).findOne({
+        where: { id },
+        select: { id: true, upvoteCount: true },
+      });
+      if (!mandate) {
+        res.status(404).json({ error: "Mandate not found" });
+        return;
+      }
+      const youUpvoted = req.citizenId
+        ? !!(await AppDataSource.getRepository(MandateUpvote).findOne({
+            where: { mandateId: id, citizenId: req.citizenId },
+          }))
+        : false;
+      res.json({ upvoteCount: mandate.upvoteCount ?? 0, youUpvoted });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+mandatesRouter.post(
+  "/:id/upvote",
+  requireCitizen,
+  async (req, res, next) => {
+    try {
+      const id = z.string().uuid().parse(req.params.id);
+      const citizenId = req.citizenId!;
+
+      const result = await AppDataSource.transaction(async (em) => {
+        const mandateRepo = em.getRepository(Mandate);
+        const upvoteRepo = em.getRepository(MandateUpvote);
+        const mandate = await mandateRepo.findOne({ where: { id } });
+        if (!mandate) return null;
+
+        const existing = await upvoteRepo.findOne({
+          where: { mandateId: id, citizenId },
+        });
+
+        if (existing) {
+          await upvoteRepo.remove(existing);
+          mandate.upvoteCount = Math.max(0, (mandate.upvoteCount ?? 0) - 1);
+          await mandateRepo.save(mandate);
+          return { youUpvoted: false, upvoteCount: mandate.upvoteCount };
+        }
+
+        await upvoteRepo.save(
+          upvoteRepo.create({ mandateId: id, citizenId }),
+        );
+        mandate.upvoteCount = (mandate.upvoteCount ?? 0) + 1;
+        await mandateRepo.save(mandate);
+        return { youUpvoted: true, upvoteCount: mandate.upvoteCount };
+      });
+
+      if (!result) {
+        res.status(404).json({ error: "Mandate not found" });
+        return;
+      }
+      res.json(result);
     } catch (err) {
       next(err);
     }

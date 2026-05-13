@@ -2,6 +2,7 @@ import type {
   CitizenSubmissionView,
   DashboardStats,
   InstitutionResponseView,
+  MandateAggregateStats,
   MandateDetail,
   MandateSummary,
   MandateCategory,
@@ -140,10 +141,12 @@ export const api = {
       category?: MandateCategory;
       urgency?: Urgency;
       status?: MandateStatus;
+      scopeLevel?: ScopeLevel;
       county?: string;
+      constituency?: string;
       ward?: string;
       q?: string;
-      sort?: "recent" | "evidence" | "urgency";
+      sort?: "recent" | "evidence" | "urgency" | "upvotes";
       page?: number;
       pageSize?: number;
     } = {},
@@ -161,7 +164,40 @@ export const api = {
   },
 
   mandate(id: string) {
-    return request<MandateDetail>(`/mandates/${id}`);
+    return request<MandateDetail>(`/mandates/${id}`, { auth: true });
+  },
+
+  mandateStats(
+    params: {
+      category?: MandateCategory;
+      urgency?: Urgency;
+      status?: MandateStatus;
+      scopeLevel?: ScopeLevel;
+      county?: string;
+      constituency?: string;
+      ward?: string;
+      q?: string;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params))
+      if (v !== undefined && v !== "") qs.set(k, String(v));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return request<MandateAggregateStats>(`/mandates/stats${suffix}`);
+  },
+
+  getUpvote(id: string) {
+    return request<{ upvoteCount: number; youUpvoted: boolean }>(
+      `/mandates/${id}/upvote`,
+      { auth: true },
+    );
+  },
+
+  toggleUpvote(id: string) {
+    return request<{ upvoteCount: number; youUpvoted: boolean }>(
+      `/mandates/${id}/upvote`,
+      { method: "POST", auth: true },
+    );
   },
 
   postResponse(

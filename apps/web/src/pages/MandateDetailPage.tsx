@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ThumbsUp } from "lucide-react";
 import type { MandateDetail } from "@sautiledger/shared";
-import { api } from "../lib/api";
+import { api, getAuthToken } from "../lib/api";
+import { Button } from "../components/button";
 import {
   Badge,
   Card,
@@ -15,6 +17,8 @@ export function MandateDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [mandate, setMandate] = useState<MandateDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [upvoteBusy, setUpvoteBusy] = useState(false);
+  const isLoggedIn = !!getAuthToken();
 
   useEffect(() => {
     if (!id) return;
@@ -23,6 +27,23 @@ export function MandateDetailPage() {
       .then(setMandate)
       .catch((e) => setError(e.message ?? "Failed to load mandate"));
   }, [id]);
+
+  async function onToggleUpvote() {
+    if (!id || !mandate || upvoteBusy) return;
+    setUpvoteBusy(true);
+    try {
+      const r = await api.toggleUpvote(id);
+      setMandate({
+        ...mandate,
+        youUpvoted: r.youUpvoted,
+        upvoteCount: r.upvoteCount,
+      });
+    } catch (e) {
+      setError((e as Error).message ?? "Failed to update upvote");
+    } finally {
+      setUpvoteBusy(false);
+    }
+  }
 
   if (error) return <FormError message={error} />;
   if (!mandate)
@@ -59,6 +80,30 @@ export function MandateDetailPage() {
         </div>
         <h1 className="mt-2 text-2xl font-bold">{mandate.title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{mandate.summary}</p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button
+            variant={mandate.youUpvoted ? "primary" : "secondary"}
+            onClick={onToggleUpvote}
+            disabled={!isLoggedIn || upvoteBusy}
+            className="gap-2"
+            title={isLoggedIn ? "Toggle upvote" : "Sign in to upvote"}
+          >
+            <ThumbsUp className="h-4 w-4" />
+            {mandate.youUpvoted ? "Upvoted" : "Upvote"}
+            <span className="ml-1 rounded bg-background/20 px-1.5 text-xs font-semibold">
+              {mandate.upvoteCount}
+            </span>
+          </Button>
+          {!isLoggedIn && (
+            <span className="text-xs text-muted-foreground">
+              <Link to="/login" className="text-primary underline">
+                Sign in
+              </Link>{" "}
+              to upvote.
+            </span>
+          )}
+        </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3 text-sm">
           <Stat label="Submissions" value={String(mandate.submissionCount)} />

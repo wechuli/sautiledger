@@ -63,6 +63,11 @@ export class Mandate {
   @Column({ name: "evidence_strength", type: "real", default: 0 })
   evidenceStrength!: number;
 
+  // Cached count of citizen upvotes. Updated transactionally when a citizen
+  // toggles their upvote; the authoritative source remains mandate_upvotes.
+  @Column({ name: "upvote_count", type: "int", default: 0 })
+  upvoteCount!: number;
+
   @Column({ name: "first_reported_at", type: "datetime" })
   firstReportedAt!: Date;
 

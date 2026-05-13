@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -14,12 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Layers,
-  ListChecks,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, Layers, ListChecks } from "lucide-react";
 import type { DashboardStats } from "@sautiledger/shared";
 import { api } from "../lib/api";
 import {
@@ -52,6 +47,7 @@ export function DashboardPage() {
     Awaited<ReturnType<typeof api.listMandates>>["items"]
   >([]);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     Promise.all([
@@ -201,16 +197,40 @@ export function DashboardPage() {
             <Card>
               <CardHeader
                 title="Mandates by scope"
-                subtitle="Which level of government is being asked to respond."
+                subtitle="Click a level to see only mandates aimed at that office."
               />
-              <div className="h-56">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {stats.byScope.map((row) => (
+                  <Link
+                    key={row.scope}
+                    to={`/mandates?scopeLevel=${row.scope}`}
+                    className="rounded-md border border-border bg-card p-4 transition hover:border-primary hover:shadow-sm"
+                  >
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      {row.scope}
+                    </p>
+                    <p className="mt-1 text-2xl font-bold">{row.count}</p>
+                    <p className="mt-1 text-xs text-primary">View mandates →</p>
+                  </Link>
+                ))}
+              </div>
+              <div className="mt-4 h-48">
                 <ResponsiveContainer>
                   <BarChart data={stats.byScope}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="scope" />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
-                    <Bar dataKey="count" fill="#16806f" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="count"
+                      fill="#16806f"
+                      radius={[4, 4, 0, 0]}
+                      style={{ cursor: "pointer" }}
+                      onClick={(d: any) =>
+                        d?.scope &&
+                        navigate(`/mandates?scopeLevel=${d.scope}`)
+                      }
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

@@ -101,6 +101,18 @@ async function joinExistingMandate(
     mandate.urgency = submission.urgency!;
   }
 
+  // Preserve the specific details of every new report by appending a
+  // cleaned, quoted snippet to the formal mandate body under an
+  // "Additional reports" log. This keeps concrete facts (street names,
+  // facilities, durations) visible to reviewers without dropping context.
+  const snippet = appendableSnippet(submission);
+  if (snippet) {
+    mandate.formalMandateText = appendAdditionalReport(
+      mandate.formalMandateText,
+      snippet,
+    );
+  }
+
   await em.getRepository(Mandate).save(mandate);
   submission.mandateId = mandate.id;
 
@@ -181,4 +193,29 @@ function computeEvidenceStrength(count: number, confidence: number): number {
   const countFactor = Math.min(1, Math.log10(Math.max(1, count)) / 2);
   const confFactor = Math.max(0, Math.min(1, confidence));
   return Math.round((0.6 * countFactor + 0.4 * confFactor) * 1000) / 1000;
+}
+
+function appendableSnippet(submission: Submission): string | null {
+  const source = submission.normalizedText || submission.originalText;
+  if (!source) return null;
+  const cleaned = source
+    .replace(/\b\+?\d[\d\s().-]{7,}\b/g, "[contact removed]")
+    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[contact removed]")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return null;
+  const max = 280;
+  return cleaned.length <= max
+    ? cleaned
+    : cleaned.slice(0, max).replace(/\s+\S*$/, "") + "…";
+}
+
+const ADDITIONAL_REPORTS_HEADING = "Additional reports:";
+
+function appendAdditionalReport(body: string, snippet: string): string {
+  const bullet = `— “${snippet}”`;
+  if (body.includes(ADDITIONAL_REPORTS_HEADING)) {
+    return `${body}\n${bullet}`;
+  }
+  return `${body}\n\n${ADDITIONAL_REPORTS_HEADING}\n${bullet}`;
 }

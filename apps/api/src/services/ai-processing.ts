@@ -134,6 +134,7 @@ async function mockProcess(input: ProcessInput): Promise<AiProcessingResult> {
     location: input.location,
     office,
     scopeLevel: input.scopeLevel,
+    originalText: input.originalText,
   });
 
   return {
@@ -220,17 +221,34 @@ function locationPhrase(loc: CivicLocation): string {
   return parts.join(", ");
 }
 
+// Light cleanup of the citizen's words so we can quote them in the formal
+// draft without leaking obvious PII. We strip phone-number-like and email-like
+// tokens but DO keep specifics such as street names, places, dates, and
+// concrete details about what is broken — those are exactly what makes a
+// mandate actionable.
+function cleanQuote(text: string, maxLen = 320): string {
+  const cleaned = text
+    .replace(/\b\+?\d[\d\s().-]{7,}\b/g, "[contact removed]")
+    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[contact removed]")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cleaned.length <= maxLen) return cleaned;
+  return cleaned.slice(0, maxLen).replace(/\s+\S*$/, "") + "…";
+}
+
 function draftFormalMandate(args: {
   category: MandateCategory;
   urgency: Urgency;
   location: CivicLocation;
   office: string;
   scopeLevel: ScopeLevel;
+  originalText: string;
 }): { title: string; summary: string; body: string } {
   const where = locationPhrase(args.location);
   const label = CATEGORY_LABEL[args.category];
   const concern = CATEGORY_CONCERN[args.category];
   const framing = URGENCY_FRAMING[args.urgency];
+  const quote = cleanQuote(args.originalText);
 
   const title =
     args.category === "water"
@@ -246,10 +264,10 @@ function draftFormalMandate(args: {
   const body = [
     `Community Mandate: ${title}.`,
     `Location: ${where}. Issue area: ${label}. Urgency: ${args.urgency}. Scope: ${args.scopeLevel}.`,
-    `Background: ${concern}. This mandate aggregates submissions from members of the community in ${where} and is presented for institutional review.`,
+    `Background: ${concern}.`,
+    `Reported details:\n— “${quote}”`,
     `Responsible body: ${args.office}. The community requests that this office acknowledge the mandate, publish an initial assessment, and share a clear plan with timelines.`,
     `Expected response: ${framing}`,
-    "This draft is generated from anonymized community submissions and is intended for review and editing by accountable institutions before public response. Individual submitters are not identified.",
   ].join("\n\n");
 
   return { title, summary, body };
