@@ -20,7 +20,11 @@ import { InstitutionResponse } from "../entities/institution-response.entity.js"
 import { Mandate } from "../entities/mandate.entity.js";
 import { MandateUpvote } from "../entities/mandate-upvote.entity.js";
 import { StatusHistory } from "../entities/status-history.entity.js";
-import { optionalCitizen, requireCitizen, requireInstitutionKey } from "../middleware/auth.js";
+import {
+  optionalCitizen,
+  requireCitizen,
+  requireInstitutionKey,
+} from "../middleware/auth.js";
 import { env } from "../config/env.js";
 
 export const mandatesRouter = Router();
@@ -195,8 +199,7 @@ mandatesRouter.get("/stats", async (req, res, next) => {
       return qb;
     };
 
-    const toN = (s: string | number) =>
-      typeof s === "number" ? s : Number(s);
+    const toN = (s: string | number) => (typeof s === "number" ? s : Number(s));
 
     const [
       total,
@@ -255,7 +258,11 @@ mandatesRouter.get("/stats", async (req, res, next) => {
         .limit(15)
         .getRawMany<{ ward: string; count: string }>(),
       applyFilters("m")
-        .select(["m.id AS id", "m.title AS title", "m.upvote_count AS upvoteCount"])
+        .select([
+          "m.id AS id",
+          "m.title AS title",
+          "m.upvote_count AS upvoteCount",
+        ])
         .orderBy("m.upvote_count", "DESC")
         .addOrderBy("m.lastActivityAt", "DESC")
         .limit(5)
@@ -508,72 +515,62 @@ mandatesRouter.patch(
 // Upvotes — one per (citizen, mandate). POST toggles.
 // ---------------------------------------------------------------------
 
-mandatesRouter.get(
-  "/:id/upvote",
-  optionalCitizen,
-  async (req, res, next) => {
-    try {
-      const id = z.string().uuid().parse(req.params.id);
-      const mandate = await AppDataSource.getRepository(Mandate).findOne({
-        where: { id },
-        select: { id: true, upvoteCount: true },
-      });
-      if (!mandate) {
-        res.status(404).json({ error: "Mandate not found" });
-        return;
-      }
-      const youUpvoted = req.citizenId
-        ? !!(await AppDataSource.getRepository(MandateUpvote).findOne({
-            where: { mandateId: id, citizenId: req.citizenId },
-          }))
-        : false;
-      res.json({ upvoteCount: mandate.upvoteCount ?? 0, youUpvoted });
-    } catch (err) {
-      next(err);
+mandatesRouter.get("/:id/upvote", optionalCitizen, async (req, res, next) => {
+  try {
+    const id = z.string().uuid().parse(req.params.id);
+    const mandate = await AppDataSource.getRepository(Mandate).findOne({
+      where: { id },
+      select: { id: true, upvoteCount: true },
+    });
+    if (!mandate) {
+      res.status(404).json({ error: "Mandate not found" });
+      return;
     }
-  },
-);
+    const youUpvoted = req.citizenId
+      ? !!(await AppDataSource.getRepository(MandateUpvote).findOne({
+          where: { mandateId: id, citizenId: req.citizenId },
+        }))
+      : false;
+    res.json({ upvoteCount: mandate.upvoteCount ?? 0, youUpvoted });
+  } catch (err) {
+    next(err);
+  }
+});
 
-mandatesRouter.post(
-  "/:id/upvote",
-  requireCitizen,
-  async (req, res, next) => {
-    try {
-      const id = z.string().uuid().parse(req.params.id);
-      const citizenId = req.citizenId!;
+mandatesRouter.post("/:id/upvote", requireCitizen, async (req, res, next) => {
+  try {
+    const id = z.string().uuid().parse(req.params.id);
+    const citizenId = req.citizenId!;
 
-      const result = await AppDataSource.transaction(async (em) => {
-        const mandateRepo = em.getRepository(Mandate);
-        const upvoteRepo = em.getRepository(MandateUpvote);
-        const mandate = await mandateRepo.findOne({ where: { id } });
-        if (!mandate) return null;
+    const result = await AppDataSource.transaction(async (em) => {
+      const mandateRepo = em.getRepository(Mandate);
+      const upvoteRepo = em.getRepository(MandateUpvote);
+      const mandate = await mandateRepo.findOne({ where: { id } });
+      if (!mandate) return null;
 
-        const existing = await upvoteRepo.findOne({
-          where: { mandateId: id, citizenId },
-        });
+      const existing = await upvoteRepo.findOne({
+        where: { mandateId: id, citizenId },
+      });
 
-        if (existing) {
-          await upvoteRepo.remove(existing);
-          mandate.upvoteCount = Math.max(0, (mandate.upvoteCount ?? 0) - 1);
-          await mandateRepo.save(mandate);
-          return { youUpvoted: false, upvoteCount: mandate.upvoteCount };
-        }
-
-        await upvoteRepo.save(
-          upvoteRepo.create({ mandateId: id, citizenId }),
-        );
-        mandate.upvoteCount = (mandate.upvoteCount ?? 0) + 1;
+      if (existing) {
+        await upvoteRepo.remove(existing);
+        mandate.upvoteCount = Math.max(0, (mandate.upvoteCount ?? 0) - 1);
         await mandateRepo.save(mandate);
-        return { youUpvoted: true, upvoteCount: mandate.upvoteCount };
-      });
-
-      if (!result) {
-        res.status(404).json({ error: "Mandate not found" });
-        return;
+        return { youUpvoted: false, upvoteCount: mandate.upvoteCount };
       }
-      res.json(result);
-    } catch (err) {
-      next(err);
+
+      await upvoteRepo.save(upvoteRepo.create({ mandateId: id, citizenId }));
+      mandate.upvoteCount = (mandate.upvoteCount ?? 0) + 1;
+      await mandateRepo.save(mandate);
+      return { youUpvoted: true, upvoteCount: mandate.upvoteCount };
+    });
+
+    if (!result) {
+      res.status(404).json({ error: "Mandate not found" });
+      return;
     }
-  },
-);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});

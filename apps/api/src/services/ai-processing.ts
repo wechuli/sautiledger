@@ -39,9 +39,8 @@ export async function processSubmissionWithAi(
   input: ProcessInput,
 ): Promise<AiProcessingResult> {
   if (env.aiProvider === "openai" && env.openaiApiKey) {
-    const { processSubmissionWithOpenAi } = await import(
-      "./ai-processing.openai.js"
-    );
+    const { processSubmissionWithOpenAi } =
+      await import("./ai-processing.openai.js");
     return processSubmissionWithOpenAi(input);
   }
   return mockProcess(input);
@@ -54,9 +53,8 @@ export async function matchSubmissionToMandate(
     return { matched_mandate_id: null, confidence: 0, reason: "no candidates" };
   }
   if (env.aiProvider === "openai" && env.openaiApiKey) {
-    const { matchSubmissionToMandateWithOpenAi } = await import(
-      "./ai-processing.openai.js"
-    );
+    const { matchSubmissionToMandateWithOpenAi } =
+      await import("./ai-processing.openai.js");
     return matchSubmissionToMandateWithOpenAi(input);
   }
   return mockMatch(input);

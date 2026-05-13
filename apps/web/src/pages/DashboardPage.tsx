@@ -227,8 +227,7 @@ export function DashboardPage() {
                       radius={[4, 4, 0, 0]}
                       style={{ cursor: "pointer" }}
                       onClick={(d: any) =>
-                        d?.scope &&
-                        navigate(`/mandates?scopeLevel=${d.scope}`)
+                        d?.scope && navigate(`/mandates?scopeLevel=${d.scope}`)
                       }
                     />
                   </BarChart>
