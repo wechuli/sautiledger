@@ -184,6 +184,14 @@ async function mockProcess(input: ProcessInput): Promise<AiProcessingResult> {
   } = pickAuthority(category, input.location, input.availableAuthorities);
   const { lang } = detectLanguage(input.originalText, input.languageHint);
 
+  const draft = draftFormalMandate({
+    category,
+    urgency,
+    location: input.location,
+    office,
+    authorityName: authority?.name ?? null,
+  });
+
   return {
     detected_language: lang,
     normalized_text: input.originalText.trim(),
@@ -195,19 +203,120 @@ async function mockProcess(input: ProcessInput): Promise<AiProcessingResult> {
     responsible_office: office,
     suggested_authority_id: authority?.id ?? null,
     responsible_authority_confidence: authConf,
-    summary: `Community concern in ${input.location.county ?? "Kenya"} relating to ${category}.`,
+    summary: draft.summary,
     recommended_mandate: {
-      title:
-        category === "water"
-          ? "Restore reliable water access in the affected ward"
-          : `Address reported community concern (${category})`,
-      body: "Generated draft for human review. Multiple submissions should be clustered before public display.",
+      title: draft.title,
+      body: draft.body,
     },
     safety_flags: [],
     moderation_recommendation: "publish_after_review",
     possible_duplicate_signals: [],
     generated: true,
   };
+}
+
+// ---------------------------------------------------------------------
+// Drafts a civic-toned Community Mandate for the mock path. The real
+// OpenAI path writes its own body; this exists so local demos still
+// surface a substantive, reviewable draft.
+// ---------------------------------------------------------------------
+
+const CATEGORY_LABEL: Record<MandateCategory, string> = {
+  water: "water access",
+  health: "health services",
+  roads: "road infrastructure",
+  education: "education services",
+  security: "community safety",
+  sanitation: "sanitation services",
+  land: "land administration",
+  markets: "market infrastructure",
+  aid: "humanitarian relief",
+  public_finance: "public finance accountability",
+  resource_exploitation: "natural resource protection",
+  other: "community welfare",
+};
+
+const CATEGORY_CONCERN: Record<MandateCategory, string> = {
+  water:
+    "residents are reporting unreliable or unsafe water supply, including broken boreholes, dry taps, and prolonged outages that disrupt households, schools, and small businesses",
+  health:
+    "residents are reporting stock-outs of essential medicine, understaffed facilities, or limited access to emergency care",
+  roads:
+    "residents are reporting damaged or impassable roads that prevent the movement of people, goods, and emergency vehicles",
+  education:
+    "residents are reporting gaps in classroom space, teacher availability, learning materials, or basic school infrastructure",
+  security:
+    "residents are reporting unresolved safety incidents, slow response times, or fear of harassment in public spaces",
+  sanitation:
+    "residents are reporting uncollected waste, blocked drains, or inadequate sanitation facilities affecting public health",
+  land:
+    "residents are reporting unresolved land disputes, unclear boundaries, or delayed administrative processes",
+  markets:
+    "residents are reporting unsafe market structures, poor lighting, or restricted access for vendors and customers",
+  aid:
+    "residents are reporting unmet humanitarian needs, including food insecurity and lack of relief support",
+  public_finance:
+    "residents are requesting public reporting on the use of devolved funds and ward-level budgets",
+  resource_exploitation:
+    "residents are reporting environmental harm or unregulated extractive activity affecting their community",
+  other:
+    "residents are reporting an unresolved community concern that requires institutional attention",
+};
+
+const URGENCY_FRAMING: Record<Urgency, string> = {
+  critical:
+    "Residents describe an immediate risk to life, livelihoods, or essential services. This mandate requires urgent acknowledgement within 48 hours and a documented response plan within one week.",
+  high:
+    "The concern has persisted long enough to affect daily life across the community. A formal acknowledgement is requested within one week and an initial response within two weeks.",
+  medium:
+    "The concern is ongoing and would benefit from a scheduled response. A formal acknowledgement is requested within two weeks.",
+  low:
+    "The concern is documented for institutional awareness and tracking. A response is requested within thirty days.",
+};
+
+function locationPhrase(loc: ProcessInput["location"]): string {
+  const parts = [loc.ward, loc.constituency, loc.county].filter(
+    (p): p is string => !!p && p.length > 0,
+  );
+  if (parts.length === 0) return "the affected community";
+  if (parts.length === 1) return parts[0];
+  return parts.join(", ");
+}
+
+function draftFormalMandate(args: {
+  category: MandateCategory;
+  urgency: Urgency;
+  location: ProcessInput["location"];
+  office: string;
+  authorityName: string | null;
+}): { title: string; summary: string; body: string } {
+  const where = locationPhrase(args.location);
+  const label = CATEGORY_LABEL[args.category];
+  const concern = CATEGORY_CONCERN[args.category];
+  const framing = URGENCY_FRAMING[args.urgency];
+  const responsibleParty = args.authorityName ?? args.office;
+
+  const title =
+    args.category === "water"
+      ? `Restore reliable water access in ${where}`
+      : args.category === "roads"
+        ? `Repair impassable road infrastructure in ${where}`
+        : args.category === "health"
+          ? `Restore essential health services in ${where}`
+          : `Address ${label} concerns in ${where}`;
+
+  const summary = `Community Mandate concerning ${label} in ${where}. ${framing.split(".")[0]}.`;
+
+  const body = [
+    `Community Mandate: ${title}.`,
+    `Location: ${where}. Issue area: ${label}. Urgency: ${args.urgency}.`,
+    `Background: ${concern}. This mandate aggregates submissions from members of the community in ${where} and is presented for institutional review.`,
+    `Responsible body: ${responsibleParty}. The community requests that this office acknowledge the mandate, publish an initial assessment, and share a clear plan with timelines.`,
+    `Expected response: ${framing}`,
+    "This draft is generated from anonymized community submissions and is intended for review and editing by accountable institutions before public response. Individual submitters are not identified.",
+  ].join("\n\n");
+
+  return { title, summary, body };
 }
 
 // ---------------------------------------------------------------------

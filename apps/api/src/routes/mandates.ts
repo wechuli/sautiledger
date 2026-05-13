@@ -82,7 +82,7 @@ mandatesRouter.get("/", async (req, res, next) => {
       });
     if (q.ward) qb.andWhere("m.ward = :ward", { ward: q.ward });
     if (q.authorityId)
-      qb.andWhere("m.authority_id = :aid", { aid: q.authorityId });
+      qb.andWhere("m.authorityId = :aid", { aid: q.authorityId });
     if (q.q) {
       qb.andWhere(
         new Brackets((b) => {
@@ -98,19 +98,21 @@ mandatesRouter.get("/", async (req, res, next) => {
 
     switch (q.sort) {
       case "evidence":
-        qb.orderBy("m.evidence_strength", "DESC").addOrderBy(
-          "m.last_activity_at",
+        qb.orderBy("m.evidenceStrength", "DESC").addOrderBy(
+          "m.lastActivityAt",
           "DESC",
         );
         break;
       case "urgency":
-        qb.orderBy(
+        qb.addSelect(
           "CASE m.urgency WHEN 'critical' THEN 4 WHEN 'high' THEN 3 WHEN 'medium' THEN 2 WHEN 'low' THEN 1 ELSE 0 END",
-          "DESC",
-        ).addOrderBy("m.last_activity_at", "DESC");
+          "urgency_rank",
+        )
+          .orderBy("urgency_rank", "DESC")
+          .addOrderBy("m.lastActivityAt", "DESC");
         break;
       default:
-        qb.orderBy("m.last_activity_at", "DESC");
+        qb.orderBy("m.lastActivityAt", "DESC");
     }
 
     qb.skip((q.page - 1) * q.pageSize).take(q.pageSize);
