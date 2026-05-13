@@ -1,0 +1,21 @@
+{
+  "name": "sautiledger",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kenya-first civic accountability platform for anonymized Community Mandates.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @sautiledger/api",
+    "dev:web": "npm run dev --workspace @sautiledger/web",
+    "dev:api": "npm run dev --workspace @sautiledger/api",
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

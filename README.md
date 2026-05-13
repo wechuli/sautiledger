@@ -31,3 +31,35 @@ The React frontend should be served by the Express app in production-like runs. 
 ## Environment
 
 Copy `.env.example` when app scaffolding exists and fill in local values. Do not commit real secrets.
+
+## Repository Layout
+
+- `apps/web`: Vite + React + TypeScript frontend.
+- `apps/api`: Express + TypeScript REST API with TypeORM wiring.
+- `packages/shared`: shared domain types used by the API and frontend.
+- `docker-compose.yml`: local production-like app and PostgreSQL stack.
+
+## Local Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the API and Vite frontend in separate terminals:
+
+```bash
+npm run dev:api
+npm run dev:web
+```
+
+The frontend runs on `http://localhost:5173` and proxies `/api` requests to `http://localhost:3000`.
+
+Run the production-like container stack:
+
+```bash
+docker compose up --build
+```
+
+The app is served from `http://localhost:3000`.
