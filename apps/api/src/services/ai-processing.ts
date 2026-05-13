@@ -249,12 +249,10 @@ const CATEGORY_CONCERN: Record<MandateCategory, string> = {
     "residents are reporting unresolved safety incidents, slow response times, or fear of harassment in public spaces",
   sanitation:
     "residents are reporting uncollected waste, blocked drains, or inadequate sanitation facilities affecting public health",
-  land:
-    "residents are reporting unresolved land disputes, unclear boundaries, or delayed administrative processes",
+  land: "residents are reporting unresolved land disputes, unclear boundaries, or delayed administrative processes",
   markets:
     "residents are reporting unsafe market structures, poor lighting, or restricted access for vendors and customers",
-  aid:
-    "residents are reporting unmet humanitarian needs, including food insecurity and lack of relief support",
+  aid: "residents are reporting unmet humanitarian needs, including food insecurity and lack of relief support",
   public_finance:
     "residents are requesting public reporting on the use of devolved funds and ward-level budgets",
   resource_exploitation:
@@ -266,12 +264,10 @@ const CATEGORY_CONCERN: Record<MandateCategory, string> = {
 const URGENCY_FRAMING: Record<Urgency, string> = {
   critical:
     "Residents describe an immediate risk to life, livelihoods, or essential services. This mandate requires urgent acknowledgement within 48 hours and a documented response plan within one week.",
-  high:
-    "The concern has persisted long enough to affect daily life across the community. A formal acknowledgement is requested within one week and an initial response within two weeks.",
+  high: "The concern has persisted long enough to affect daily life across the community. A formal acknowledgement is requested within one week and an initial response within two weeks.",
   medium:
     "The concern is ongoing and would benefit from a scheduled response. A formal acknowledgement is requested within two weeks.",
-  low:
-    "The concern is documented for institutional awareness and tracking. A response is requested within thirty days.",
+  low: "The concern is documented for institutional awareness and tracking. A response is requested within thirty days.",
 };
 
 function locationPhrase(loc: ProcessInput["location"]): string {

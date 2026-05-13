@@ -45,15 +45,14 @@ const demoMandates: DemoMandate[] = [
     title: "Restore reliable water access in Mathare ward",
     summary:
       "Residents report a non-functional borehole and delayed county response affecting daily water access in Mathare.",
-    formalMandateText:
-      [
-        "Community Mandate: Restore reliable water access in Mathare ward.",
-        "Location: Mathare ward, Mathare constituency, Nairobi County. Issue area: water access. Urgency: high.",
-        "Background: Residents of Mathare ward report that the community borehole has been non-functional for several weeks. Households, schools, and small businesses are without a dependable water source, and previous calls to the area chief and county office have not produced a documented response. The disruption is affecting hygiene, food preparation, and the daily routines of women and children who are walking long distances to fetch water.",
-        "Responsible body: Nairobi County Water Department, supported by the Mathare ward administrator. The community requests that this office publish (i) an inspection report on the borehole within seven days, (ii) a restoration plan with timelines for repair or alternative supply within fourteen days, and (iii) a maintenance schedule that prevents repeat outages.",
-        "Expected response: The concern has persisted long enough to affect daily life across the community. A formal acknowledgement is requested within one week and an initial response within two weeks.",
-        "This mandate aggregates anonymized community submissions reporting the same concern. Individual submitters are not identified. The mandate is intended for review, editing, and public response by accountable institutions.",
-      ].join("\n\n"),
+    formalMandateText: [
+      "Community Mandate: Restore reliable water access in Mathare ward.",
+      "Location: Mathare ward, Mathare constituency, Nairobi County. Issue area: water access. Urgency: high.",
+      "Background: Residents of Mathare ward report that the community borehole has been non-functional for several weeks. Households, schools, and small businesses are without a dependable water source, and previous calls to the area chief and county office have not produced a documented response. The disruption is affecting hygiene, food preparation, and the daily routines of women and children who are walking long distances to fetch water.",
+      "Responsible body: Nairobi County Water Department, supported by the Mathare ward administrator. The community requests that this office publish (i) an inspection report on the borehole within seven days, (ii) a restoration plan with timelines for repair or alternative supply within fourteen days, and (iii) a maintenance schedule that prevents repeat outages.",
+      "Expected response: The concern has persisted long enough to affect daily life across the community. A formal acknowledgement is requested within one week and an initial response within two weeks.",
+      "This mandate aggregates anonymized community submissions reporting the same concern. Individual submitters are not identified. The mandate is intended for review, editing, and public response by accountable institutions.",
+    ].join("\n\n"),
     category: "water",
     urgency: "high",
     status: "acknowledged",
@@ -88,15 +87,14 @@ const demoMandates: DemoMandate[] = [
     title: "Restock dispensary medicine in Kondele ward",
     summary:
       "Residents report the local dispensary has been without basic medicines for several weeks.",
-    formalMandateText:
-      [
-        "Community Mandate: Restock essential medicines at Kondele ward dispensary.",
-        "Location: Kondele ward, Kisumu Central constituency, Kisumu County. Issue area: health services. Urgency: high.",
-        "Background: Residents report that the Kondele dispensary has been without basic medicines for an extended period. Families are travelling further or paying private providers for treatments that should be available at the dispensary, and parents with young children are reporting deteriorating outcomes for routine illnesses. The stock-out points to a supply chain breakdown rather than a one-off event.",
-        "Responsible body: Kisumu County Department of Health, in coordination with KEMSA and the Kondele ward administrator. The community requests (i) an audit of the dispensary's current stock and ordering history within seven days, (ii) an emergency restock of essential medicines within fourteen days, and (iii) a public statement on the supply chain gap and the measures that will prevent recurrence within twenty-one days.",
-        "Expected response: The concern has persisted long enough to affect daily life across the community. A formal acknowledgement is requested within one week and an initial response within two weeks.",
-        "This mandate aggregates anonymized community submissions reporting the same concern. Individual submitters are not identified. The mandate is intended for review, editing, and public response by accountable institutions.",
-      ].join("\n\n"),
+    formalMandateText: [
+      "Community Mandate: Restock essential medicines at Kondele ward dispensary.",
+      "Location: Kondele ward, Kisumu Central constituency, Kisumu County. Issue area: health services. Urgency: high.",
+      "Background: Residents report that the Kondele dispensary has been without basic medicines for an extended period. Families are travelling further or paying private providers for treatments that should be available at the dispensary, and parents with young children are reporting deteriorating outcomes for routine illnesses. The stock-out points to a supply chain breakdown rather than a one-off event.",
+      "Responsible body: Kisumu County Department of Health, in coordination with KEMSA and the Kondele ward administrator. The community requests (i) an audit of the dispensary's current stock and ordering history within seven days, (ii) an emergency restock of essential medicines within fourteen days, and (iii) a public statement on the supply chain gap and the measures that will prevent recurrence within twenty-one days.",
+      "Expected response: The concern has persisted long enough to affect daily life across the community. A formal acknowledgement is requested within one week and an initial response within two weeks.",
+      "This mandate aggregates anonymized community submissions reporting the same concern. Individual submitters are not identified. The mandate is intended for review, editing, and public response by accountable institutions.",
+    ].join("\n\n"),
     category: "health",
     urgency: "high",
     status: "in_progress",
@@ -127,15 +125,14 @@ const demoMandates: DemoMandate[] = [
     title: "Repair impassable ward road in Kibra",
     summary:
       "Heavy rains have damaged the ward road, blocking ambulances and stranding residents.",
-    formalMandateText:
-      [
-        "Community Mandate: Repair impassable ward road in Kibra.",
-        "Location: Kibra constituency, Nairobi County. Issue area: road infrastructure. Urgency: critical.",
-        "Background: Recent heavy rains have damaged sections of the ward road serving the community. The road is currently impassable to ambulances and to vehicles transporting goods, and residents are reporting that medical emergencies and school transport have already been disrupted. Without urgent intervention, the community remains exposed to a preventable safety risk.",
-        "Responsible body: Kibra Constituency Office and the Nairobi County Roads and Public Works department. The community requests (i) emergency grading and patching of the most damaged sections within seventy-two hours, (ii) a published repair schedule with named contractors and supervising officers within fourteen days, and (iii) a follow-up assessment after the next rainy period to confirm durability.",
-        "Expected response: Residents describe an immediate risk to life, livelihoods, or essential services. This mandate requires urgent acknowledgement within forty-eight hours and a documented response plan within one week.",
-        "This mandate aggregates anonymized community submissions reporting the same concern. Individual submitters are not identified. The mandate is intended for review, editing, and public response by accountable institutions.",
-      ].join("\n\n"),
+    formalMandateText: [
+      "Community Mandate: Repair impassable ward road in Kibra.",
+      "Location: Kibra constituency, Nairobi County. Issue area: road infrastructure. Urgency: critical.",
+      "Background: Recent heavy rains have damaged sections of the ward road serving the community. The road is currently impassable to ambulances and to vehicles transporting goods, and residents are reporting that medical emergencies and school transport have already been disrupted. Without urgent intervention, the community remains exposed to a preventable safety risk.",
+      "Responsible body: Kibra Constituency Office and the Nairobi County Roads and Public Works department. The community requests (i) emergency grading and patching of the most damaged sections within seventy-two hours, (ii) a published repair schedule with named contractors and supervising officers within fourteen days, and (iii) a follow-up assessment after the next rainy period to confirm durability.",
+      "Expected response: Residents describe an immediate risk to life, livelihoods, or essential services. This mandate requires urgent acknowledgement within forty-eight hours and a documented response plan within one week.",
+      "This mandate aggregates anonymized community submissions reporting the same concern. Individual submitters are not identified. The mandate is intended for review, editing, and public response by accountable institutions.",
+    ].join("\n\n"),
     category: "roads",
     urgency: "critical",
     status: "new",
