@@ -24,9 +24,12 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/sautiledger
-      AI_PROVIDER: mock
-      SUBMISSION_HASH_SALT: local-dev-change-me
-      SESSION_SECRET: local-dev-change-me
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      SUBMISSION_HASH_SALT: ${SUBMISSION_HASH_SALT:-local-dev-change-me}
+      SESSION_SECRET: ${SESSION_SECRET:-local-dev-change-me}
+      INSTITUTION_DEMO_KEY: ${INSTITUTION_DEMO_KEY:-demo-institution-key}
       CORS_ORIGIN: http://localhost:3000
       SERVE_STATIC_FRONTEND: "true"
     ports:
