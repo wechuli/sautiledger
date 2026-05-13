@@ -183,3 +183,7 @@ INTEGRATION=1 npm run test --workspace @sautiledger/api  # adds register→submi
 - Phone numbers are normalized to Kenyan E.164 and stored only as a salted SHA-256 hash (`SUBMISSION_HASH_SALT`).
 - Public dashboards show aggregated Community Mandates, not individual submissions.
 - AI-generated summaries are stored separately from the original submission text and flagged as generated.
+
+## Built with Codex
+
+This project was built with [OpenAI Codex](https://openai.com/codex/) as the primary coding collaborator — used for scaffolding, iterating on the AI processing pipeline, debugging the Docker build, wiring up the Kubernetes manifests, and drafting documentation. Human review and product direction stayed in the loop throughout.
