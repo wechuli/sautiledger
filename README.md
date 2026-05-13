@@ -1,6 +1,41 @@
 # SautiLedger
 
-SautiLedger is a PeaceTech platform that helps communities safely transform informal concerns into anonymized, structured, and verifiable civic mandates that institutions can track, acknowledge, and resolve.
+> _Sauti_ (Swahili: voice) + _Ledger_ — a public, verifiable record of community voice.
+
+**SautiLedger is a Kenya-first PeaceTech platform that turns informal, scattered community concerns into anonymized, structured, and verifiable Community Mandates that institutions can acknowledge, track, and resolve in public.**
+
+It is designed for the gap between two things that already exist:
+
+1. **Communities have a lot to say.** Concerns about water, health, education, security, infrastructure, and corruption are constantly raised — in WhatsApp groups, on the radio, in *baraza*s, in market conversations, and to chiefs and ward administrators. Most of it never reaches the institutions that could act on it, and what does reach them rarely lands as evidence.
+2. **Institutions struggle to respond systematically.** County governments, constituency offices, ward administrations, and national agencies have legitimate accountability obligations under Kenya's public participation framework (Constitution Art. 10 & 174, County Governments Act, Public Participation guidelines) but lack a structured, low-friction channel to receive citizen input and demonstrate response over time.
+
+SautiLedger sits in that gap.
+
+## What the platform does
+
+1. **A citizen submits a concern** — in English, Swahili, Sheng, or mixed language — from a mobile-first, low-bandwidth interface. No login required. They pick the responsible scope (national, county, constituency, or ward) and the relevant Kenyan boundary via cascading dropdowns.
+2. **The backend stores the original text safely** under a salted hash and issues an **anonymous tracking code** the citizen can use to follow the issue later, without revealing who submitted it.
+3. **AI normalizes the message** — detects language, translates as needed, classifies the issue (e.g. water, health, education, infrastructure, security, governance), scores urgency, derives the responsible office from scope + location, and drafts a formal mandate. All AI output is marked as generated, is reviewable, and is editable.
+4. **Similar submissions are clustered** into a single **Community Mandate** — an anonymized, plain-language statement of a shared community priority backed by a count of supporting submissions and an evidence-strength signal.
+5. **A public dashboard surfaces the mandates** by scope, county, constituency, ward, category, urgency, and status — graph-rich and easy to scan. Individual personal data is never exposed; only aggregates.
+6. **Registered citizens can upvote mandates** they care about, strengthening the public signal without exposing identity.
+7. **Institutions respond in public.** Authorized institution users acknowledge mandates, post updates, dispute claims with reasoning, and mark issues resolved. Every state change is recorded.
+8. **A Responsiveness Index** measures _response behavior_ — acknowledgement speed, update frequency, resolution rate — so accountability is about how institutions act, not which areas have the most problems.
+
+## Why this is useful
+
+- **For citizens:** a safe, anonymous, low-bandwidth way to be heard without retaliation risk, and a way to _track_ whether their concern was acknowledged and acted on.
+- **For institutions:** a structured, auditable inbox of community priorities with clear scope routing, plus a public record of their own responsiveness they can point to during budget cycles, performance reviews, and reporting under the County Governments Act.
+- **For civil society, journalists, and researchers:** a transparent, machine-readable feed of aggregated civic priorities and institutional response patterns over time — without exposing the individuals behind the submissions.
+- **For peacebuilding:** by routing grievances into a calm, nonpartisan, institution-focused channel and showing measurable response, SautiLedger reduces the friction that turns unaddressed concerns into mistrust, rumor, and unrest.
+
+## Design principles
+
+- **Privacy by default.** Public views show aggregated mandates; raw submissions, names, phone numbers, and exact GPS never appear publicly. Identifiers are hashed with a server-side salt.
+- **Nonpartisan, institution-focused.** Language targets responsible offices, not individuals or political actors.
+- **Reviewable AI.** Every AI-generated category, urgency, routing, and mandate draft is editable, marked as generated, and overridable.
+- **Mobile-first, low-bandwidth.** Small payloads, resilient flows, clear copy in everyday language.
+- **Kenya-first, but configurable.** Counties, constituencies, and wards are data, not hard-coded UI.
 
 ## Project Context
 
