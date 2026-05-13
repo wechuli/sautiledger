@@ -113,13 +113,13 @@ Key variables:
 
 Do not commit real secrets.
 
-### 3. Seed demo data
+### 3. Seed demo data (optional)
 
 ```bash
-npm run seed:demo --workspace @sautiledger/api   # 3 demo citizens + 3 demo mandates
+npm run seed:demo --workspace @sautiledger/api
 ```
 
-The SQLite file and parent directory are created automatically on first run. The demo seed is idempotent — safe to re-run.
+Populates the SQLite DB with a small set of clustered demo mandates and submissions so the dashboard and mandates list have something to render on first run. The phones and password used by the seed script live in [apps/api/src/scripts/seed-demo.ts](apps/api/src/scripts/seed-demo.ts) — change them before sharing the instance publicly. The seed is idempotent — safe to re-run. The SQLite file and parent directory are created automatically on first run.
 
 ### 4. Run the API and frontend
 
@@ -135,13 +135,9 @@ npm run dev:web
 
 The Vite dev server proxies `/api` requests to the API.
 
-### 5. Demo credentials
+### 5. Sign in / institution console
 
-| Role      | Phone           | Password            |
-| --------- | --------------- | ------------------- |
-| Citizen A | `+254700000001` | `demo-password-123` |
-| Citizen B | `+254700000002` | `demo-password-123` |
-| Citizen C | `+254700000003` | `demo-password-123` |
+Register a citizen account from `/auth/register` (phone + password). Anonymous submissions also work without an account.
 
 To use the institution console at `/institution`, paste the value of
 `INSTITUTION_DEMO_KEY` from your `.env` (default: `demo-institution-key`).
@@ -156,23 +152,23 @@ The app is served from <http://localhost:3000> (Express serves the built React f
 
 ## Demo Walkthrough
 
-1. Visit <http://localhost:5173> — the public dashboard renders charts powered by the seeded mandates.
-2. Sign in as `+254700000001` / `demo-password-123`.
+1. Visit <http://localhost:5173> — the public dashboard renders charts powered by any seeded or submitted mandates.
+2. Register a citizen account from `/auth/register`, or submit anonymously.
 3. Open **Submit a concern** and post a new informal report. The API generates a tracking code and either joins an existing Community Mandate or creates a new one (mock AI by default).
-4. Open **My submissions** to see your recent tracking codes.
-5. Browse `/mandates` to filter by county, urgency, and category.
+4. Open **My submissions** to see your recent tracking codes (requires signing in).
+5. Browse `/mandates` to filter by scope, county, constituency, ward, category, and urgency.
 6. Visit `/tracking` and paste a tracking code to see anonymous status updates.
-7. Open `/institution`, enter the demo institution key, then acknowledge or update one of the seeded mandates.
+7. Open `/institution`, enter the institution key from your `.env`, then acknowledge or update one of the mandates.
 
 ## Using real OpenAI
 
 ```bash
 AI_PROVIDER=openai
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o-mini   # or another chat-completions model
+OPENAI_MODEL=gpt-5   # or another chat-completions model
 ```
 
-Both processing (`processSubmissionWithAi`) and clustering (`matchSubmissionToMandate`) call the OpenAI API with strict JSON Schema responses and a low temperature. The original submission text is always preserved separately from AI-generated summaries, and every AI-produced field is marked `generated: true`.
+Both processing (`processSubmissionWithAi`) and clustering (`matchSubmissionToMandate`) call the OpenAI API with strict JSON Schema responses. The original submission text is always preserved separately from AI-generated summaries, and every AI-produced field is marked `generated: true`.
 
 ## Tests
 
