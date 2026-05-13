@@ -147,7 +147,6 @@ export async function processSubmissionWithOpenAi(
 ): Promise<AiProcessingResult> {
   const response = await client().chat.completions.create({
     model: env.openaiModel,
-    temperature: 0.2,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: buildUserPrompt(input) },
@@ -242,7 +241,6 @@ Return JSON matching the required schema. If matched_mandate_id is non-null, it 
 
   const response = await client().chat.completions.create({
     model: env.openaiModel,
-    temperature: 0.1,
     messages: [
       { role: "system", content: MATCH_SYSTEM_PROMPT },
       { role: "user", content: user },

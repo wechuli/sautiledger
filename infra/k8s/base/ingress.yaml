@@ -1,0 +1,81 @@
+# Traefik-flavoured Ingress with cert-manager TLS issuance.
+#
+# Requires:
+#   * Traefik installed in the cluster with `web` (port 80) and `websecure`
+#     (port 443) entryPoints — the standard chart defaults.
+#   * cert-manager installed.
+#   * A ClusterIssuer named `letsencrypt-prod` (see
+#     ../cert-manager/cluster-issuer.yaml).
+#
+# Hostname: sautiledger.org. Update here if you need to change it.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sautiledger
+  namespace: sautiledger
+  labels:
+    app.kubernetes.io/name: sautiledger
+  annotations:
+    # cert-manager will create/renew the TLS Certificate referenced by
+    # `tls[].secretName` below using this ClusterIssuer.
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Traefik routing hints. `websecure` is the HTTPS entryPoint;
+    # the http→https redirect Middleware below catches plain HTTP.
+    traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: "sautiledger-redirect-https@kubernetescrd"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - sautiledger.org
+      secretName: sautiledger-tls
+  rules:
+    - host: sautiledger.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sautiledger
+                port:
+                  number: 80
+---
+# A separate Ingress on the `web` (HTTP) entryPoint so plain-HTTP requests
+# are forwarded to the redirect Middleware. Without this, Traefik does not
+# attach the redirect to port 80 and clients hitting http:// get a 404.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sautiledger-http-redirect
+  namespace: sautiledger
+  labels:
+    app.kubernetes.io/name: sautiledger
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: "web"
+    traefik.ingress.kubernetes.io/router.middlewares: "sautiledger-redirect-https@kubernetescrd"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: sautiledger.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sautiledger
+                port:
+                  number: 80
+---
+# Traefik Middleware (CRD) that issues an HTTP→HTTPS redirect.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect-https
+  namespace: sautiledger
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true

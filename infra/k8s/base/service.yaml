@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sautiledger
+  namespace: sautiledger
+  labels:
+    app.kubernetes.io/name: sautiledger
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: sautiledger
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

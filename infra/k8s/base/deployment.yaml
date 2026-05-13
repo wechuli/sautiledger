@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sautiledger
+  namespace: sautiledger
+  labels:
+    app.kubernetes.io/name: sautiledger
+    app.kubernetes.io/component: app
+spec:
+  # SQLite + ReadWriteOnce volume = single writer. Two replicas would
+  # corrupt the database on simultaneous writes.
+  replicas: 1
+  strategy:
+    # Recreate, not RollingUpdate: a new pod cannot bind the RWO PVC
+    # while the old one still holds it.
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sautiledger
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sautiledger
+        app.kubernetes.io/component: app
+    spec:
+      # Match the non-root UID/GID baked into the image so writes to the
+      # mounted PV go through cleanly on most CSI drivers.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: app
+          image: ghcr.io/your-org/sautiledger:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: sautiledger-config
+            - secretRef:
+                name: sautiledger-secrets
+          # Both probes hit the existing /api/health route.
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            # /tmp must be writable when readOnlyRootFilesystem is true.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: sautiledger-data
+        - name: tmp
+          emptyDir: {}

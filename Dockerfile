@@ -29,7 +29,8 @@ COPY package.json package-lock.json* ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
-RUN npm ci --omit=dev --workspaces --include-workspace-root \
+RUN npm ci --omit=dev --workspaces --include-workspace-root --ignore-scripts \
+ && npm rebuild better-sqlite3 \
  && npm cache clean --force
 
 # ---------- Stage 4: minimal runtime image ----------

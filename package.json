@@ -11,7 +11,7 @@
     "dev": "npm run dev --workspace @sautiledger/api",
     "dev:web": "npm run dev --workspace @sautiledger/web",
     "dev:api": "npm run dev --workspace @sautiledger/api",
-    "build": "npm run build --workspaces",
+    "build": "npm run build -w @sautiledger/shared && npm run build -w @sautiledger/api && npm run build -w @sautiledger/web",
     "typecheck": "npm run typecheck --workspaces",
     "lint": "npm run lint --workspaces"
   },

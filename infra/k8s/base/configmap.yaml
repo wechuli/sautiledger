@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sautiledger-config
+  namespace: sautiledger
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  # SQLite file lives on the mounted PersistentVolume.
+  DATABASE_PATH: "/data/sautiledger.db"
+  # mock = deterministic local processor (default for demos);
+  # openai = real OpenAI Chat Completions (requires OPENAI_API_KEY in the secret).
+  AI_PROVIDER: "openai"
+  OPENAI_MODEL: "gpt-5"
+  SERVE_STATIC_FRONTEND: "true"
+  # Ingress will set the public origin; CORS only matters when the API is
+  # consumed from a different origin than the served frontend.
+  CORS_ORIGIN: "https://sautiledger.org"

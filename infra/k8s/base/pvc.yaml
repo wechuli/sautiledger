@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sautiledger-data
+  namespace: sautiledger
+  labels:
+    app.kubernetes.io/name: sautiledger
+spec:
+  # SQLite tolerates only a single writer, so RWO matches reality.
+  # (See deployment.yaml — replicas is pinned to 1 with a Recreate strategy.)
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  # Leave storageClassName unset to use the cluster default. Override in an
+  # overlay if a specific class is required (e.g. gp3, longhorn, local-path).

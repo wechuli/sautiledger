@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sautiledger
+  labels:
+    app.kubernetes.io/name: sautiledger
+    app.kubernetes.io/part-of: sautiledger
