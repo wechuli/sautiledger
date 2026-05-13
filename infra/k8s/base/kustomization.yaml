@@ -20,4 +20,5 @@ resources:
 
 images:
   - name: ghcr.io/your-org/sautiledger
+    newName: docker.io/wechuli/sautiledger
     newTag: latest

@@ -32,7 +32,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: app
-          image: ghcr.io/your-org/sautiledger:latest
+          image: docker.io/wechuli/sautiledger:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
