@@ -31,7 +31,8 @@ export function RegisterPage() {
     <div className="mx-auto max-w-md">
       <h1 className="text-2xl font-bold">Create an account</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        We use your phone number as your ID and store only a hash of it. We never publish it.
+        We use your phone number as your ID and store only a hash of it. We
+        never publish it.
       </p>
       <form className="mt-6 space-y-4" onSubmit={onSubmit}>
         <div>

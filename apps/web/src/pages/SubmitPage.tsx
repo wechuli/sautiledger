@@ -3,7 +3,15 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, Send } from "lucide-react";
 import type { AuthoritySummary } from "@sautiledger/shared";
 import { Button } from "../components/button";
-import { Card, CardHeader, FormError, Input, Label, Select, Textarea } from "../components/ui";
+import {
+  Card,
+  CardHeader,
+  FormError,
+  Input,
+  Label,
+  Select,
+  Textarea,
+} from "../components/ui";
 import { api } from "../lib/api";
 
 export function SubmitPage() {
@@ -15,7 +23,9 @@ export function SubmitPage() {
   const [originalText, setOriginalText] = useState("");
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<Awaited<ReturnType<typeof api.submit>> | null>(null);
+  const [result, setResult] = useState<Awaited<
+    ReturnType<typeof api.submit>
+  > | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -36,9 +46,9 @@ export function SubmitPage() {
         location: {
           county: county || undefined,
           constituency: constituency || undefined,
-          ward: ward || undefined
+          ward: ward || undefined,
         },
-        consentToProcess: true
+        consentToProcess: true,
       });
       setResult(r);
     } catch (err) {
@@ -51,9 +61,14 @@ export function SubmitPage() {
   if (result) {
     return (
       <Card className="mx-auto max-w-xl">
-        <CardHeader title="Submission received" subtitle="Keep your tracking code somewhere safe." />
+        <CardHeader
+          title="Submission received"
+          subtitle="Keep your tracking code somewhere safe."
+        />
         <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Tracking code</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            Tracking code
+          </p>
           <p className="font-mono text-lg font-bold">{result.trackingCode}</p>
         </div>
         <p className="mt-3 text-sm">
@@ -62,7 +77,10 @@ export function SubmitPage() {
         {result.mandateTitle && (
           <p className="mt-1 text-sm">
             Linked to mandate:{" "}
-            <Link to={`/mandates/${result.mandateId}`} className="text-primary underline">
+            <Link
+              to={`/mandates/${result.mandateId}`}
+              className="text-primary underline"
+            >
               {result.mandateTitle}
             </Link>{" "}
             ({result.mandateStatus})
@@ -85,14 +103,19 @@ export function SubmitPage() {
     <div className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold">Submit a concern</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Your raw text stays internal. Public pages only show anonymized mandate summaries.
+        Your raw text stays internal. Public pages only show anonymized mandate
+        summaries.
       </p>
 
       <form className="mt-6 space-y-4" onSubmit={onSubmit}>
         <div className="grid gap-4 md:grid-cols-3">
           <div>
             <Label htmlFor="county">County</Label>
-            <Input id="county" value={county} onChange={(e) => setCounty(e.target.value)} />
+            <Input
+              id="county"
+              value={county}
+              onChange={(e) => setCounty(e.target.value)}
+            />
           </div>
           <div>
             <Label htmlFor="constituency">Constituency</Label>
@@ -104,7 +127,11 @@ export function SubmitPage() {
           </div>
           <div>
             <Label htmlFor="ward">Ward</Label>
-            <Input id="ward" value={ward} onChange={(e) => setWard(e.target.value)} />
+            <Input
+              id="ward"
+              value={ward}
+              onChange={(e) => setWard(e.target.value)}
+            />
           </div>
         </div>
 
@@ -142,7 +169,8 @@ export function SubmitPage() {
 
         <div className="flex items-start gap-2 rounded-md bg-muted p-3 text-sm text-muted-foreground">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          Avoid names, phone numbers, exact GPS, or details that could identify someone.
+          Avoid names, phone numbers, exact GPS, or details that could identify
+          someone.
         </div>
 
         <label className="flex items-start gap-2 text-sm">
@@ -153,14 +181,19 @@ export function SubmitPage() {
             required
           />
           <span>
-            I understand my concern will be anonymized, summarized by AI, and may be clustered with similar
-            concerns into a public Community Mandate.
+            I understand my concern will be anonymized, summarized by AI, and
+            may be clustered with similar concerns into a public Community
+            Mandate.
           </span>
         </label>
 
         <FormError message={error} />
 
-        <Button className="w-full gap-2" type="submit" disabled={busy || !consent}>
+        <Button
+          className="w-full gap-2"
+          type="submit"
+          disabled={busy || !consent}
+        >
           <Send className="h-4 w-4" />
           {busy ? "Submitting…" : "Submit concern"}
         </Button>

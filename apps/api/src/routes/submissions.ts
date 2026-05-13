@@ -16,10 +16,10 @@ const submissionSchema = z.object({
     country: z.literal("Kenya").default("Kenya"),
     county: z.string().optional(),
     constituency: z.string().optional(),
-    ward: z.string().optional()
+    ward: z.string().optional(),
   }),
   targetAuthorityId: z.string().uuid(),
-  consentToProcess: z.literal(true)
+  consentToProcess: z.literal(true),
 });
 
 export const submissionsRouter = Router();
@@ -37,7 +37,8 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
     }
 
     const authorities = await AppDataSource.getRepository(Authority).find();
-    let aiResult: Awaited<ReturnType<typeof processSubmissionWithAi>> | null = null;
+    let aiResult: Awaited<ReturnType<typeof processSubmissionWithAi>> | null =
+      null;
     let processingStatus: "processed" | "failed" = "processed";
     try {
       aiResult = await processSubmissionWithAi({
@@ -51,8 +52,8 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
           county: a.county,
           constituency: a.constituency,
           ward: a.ward,
-          verified: a.verified
-        }))
+          verified: a.verified,
+        })),
       });
     } catch (aiErr) {
       console.error("AI processing failed:", aiErr);
@@ -71,7 +72,7 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
       urgency: aiResult?.urgency ?? null,
       processingStatus,
       location: input.location,
-      aiResult
+      aiResult,
     });
 
     // Persist + cluster atomically.
@@ -82,13 +83,17 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
 
       if (aiResult && processingStatus === "processed") {
         try {
-          const outcome = await findOrCreateMandateForSubmission(em, persisted, aiResult);
+          const outcome = await findOrCreateMandateForSubmission(
+            em,
+            persisted,
+            aiResult,
+          );
           await em.getRepository(Submission).update(persisted.id, {
-            mandateId: outcome.mandateId
+            mandateId: outcome.mandateId,
           });
           persisted.mandateId = outcome.mandateId;
           const mandate = await em.getRepository(Mandate).findOne({
-            where: { id: outcome.mandateId }
+            where: { id: outcome.mandateId },
           });
           mandateTitle = mandate?.title ?? null;
           mandateStatus = mandate?.status ?? null;
@@ -106,7 +111,7 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
       processingStatus: saved.processingStatus,
       mandateId: saved.mandateId ?? null,
       mandateTitle,
-      mandateStatus
+      mandateStatus,
     });
   } catch (error) {
     next(error);

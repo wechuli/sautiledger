@@ -12,14 +12,16 @@ import {
   Select,
   Textarea,
   statusTone,
-  urgencyTone
+  urgencyTone,
 } from "../components/ui";
 import { api } from "../lib/api";
 
 const KEY_STORAGE = "sl_institution_key";
 
 export function InstitutionPage() {
-  const [key, setKey] = useState<string>(() => localStorage.getItem(KEY_STORAGE) ?? "");
+  const [key, setKey] = useState<string>(
+    () => localStorage.getItem(KEY_STORAGE) ?? "",
+  );
   const [items, setItems] = useState<MandateSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<MandateSummary | null>(null);
@@ -39,7 +41,8 @@ export function InstitutionPage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Institution console</h1>
       <p className="text-sm text-muted-foreground">
-        Demo institution access — paste your institution key, then acknowledge mandates and post responses.
+        Demo institution access — paste your institution key, then acknowledge
+        mandates and post responses.
       </p>
 
       <Card>
@@ -76,10 +79,13 @@ export function InstitutionPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{m.title}</span>
                     <Badge tone={urgencyTone(m.urgency)}>{m.urgency}</Badge>
-                    <Badge tone={statusTone(m.status)}>{m.status.replace(/_/g, " ")}</Badge>
+                    <Badge tone={statusTone(m.status)}>
+                      {m.status.replace(/_/g, " ")}
+                    </Badge>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {m.county ?? "—"} · {m.submissionCount} submission{m.submissionCount === 1 ? "" : "s"}
+                    {m.county ?? "—"} · {m.submissionCount} submission
+                    {m.submissionCount === 1 ? "" : "s"}
                   </p>
                 </button>
               </li>
@@ -93,12 +99,16 @@ export function InstitutionPage() {
             institutionKey={key}
             onUpdated={(updated) => {
               setSelected(updated);
-              setItems((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+              setItems((prev) =>
+                prev.map((m) => (m.id === updated.id ? updated : m)),
+              );
             }}
           />
         ) : (
           <Card>
-            <p className="text-sm text-muted-foreground">Select a mandate to respond.</p>
+            <p className="text-sm text-muted-foreground">
+              Select a mandate to respond.
+            </p>
           </Card>
         )}
       </div>
@@ -109,7 +119,7 @@ export function InstitutionPage() {
 function ResponsePanel({
   mandate,
   institutionKey,
-  onUpdated
+  onUpdated,
 }: {
   mandate: MandateSummary;
   institutionKey: string;
@@ -135,7 +145,7 @@ function ResponsePanel({
       await api.postResponse(mandate.id, institutionKey, {
         responderLabel,
         responseText,
-        newStatus: newStatus || undefined
+        newStatus: newStatus || undefined,
       });
       setOkMsg("Response posted.");
       // Refresh mandate summary
@@ -143,7 +153,7 @@ function ResponsePanel({
       onUpdated({
         ...mandate,
         status: fresh.status,
-        lastActivityAt: fresh.lastActivityAt
+        lastActivityAt: fresh.lastActivityAt,
       });
       setResponseText("");
       setNewStatus("");
@@ -159,7 +169,9 @@ function ResponsePanel({
       <CardHeader title={mandate.title} subtitle={mandate.summary} />
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={urgencyTone(mandate.urgency)}>{mandate.urgency}</Badge>
-        <Badge tone={statusTone(mandate.status)}>{mandate.status.replace(/_/g, " ")}</Badge>
+        <Badge tone={statusTone(mandate.status)}>
+          {mandate.status.replace(/_/g, " ")}
+        </Badge>
         <Badge>{mandate.category}</Badge>
       </div>
 

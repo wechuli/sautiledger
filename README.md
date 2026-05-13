@@ -57,15 +57,15 @@ cp .env.example .env
 
 Key variables:
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | Postgres connection string (defaults to the Compose db). |
-| `AI_PROVIDER` | `mock` for offline demos, `openai` for real LLM calls. |
-| `OPENAI_API_KEY` / `OPENAI_MODEL` | Required only when `AI_PROVIDER=openai`. |
-| `SUBMISSION_HASH_SALT` | Server-side salt for SHA-256 hashing of phone numbers. |
-| `SESSION_SECRET` | JWT signing secret for citizen sessions. |
-| `INSTITUTION_DEMO_KEY` | Shared key required by the institution console (`X-Institution-Key`). |
-| `CORS_ORIGIN` | Allowed origin for the Vite dev server. |
+| Variable                          | Purpose                                                               |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `DATABASE_URL`                    | Postgres connection string (defaults to the Compose db).              |
+| `AI_PROVIDER`                     | `mock` for offline demos, `openai` for real LLM calls.                |
+| `OPENAI_API_KEY` / `OPENAI_MODEL` | Required only when `AI_PROVIDER=openai`.                              |
+| `SUBMISSION_HASH_SALT`            | Server-side salt for SHA-256 hashing of phone numbers.                |
+| `SESSION_SECRET`                  | JWT signing secret for citizen sessions.                              |
+| `INSTITUTION_DEMO_KEY`            | Shared key required by the institution console (`X-Institution-Key`). |
+| `CORS_ORIGIN`                     | Allowed origin for the Vite dev server.                               |
 
 Do not commit real secrets.
 
@@ -101,8 +101,8 @@ The Vite dev server proxies `/api` requests to the API.
 
 ### 6. Demo credentials
 
-| Role | Phone | Password |
-| --- | --- | --- |
+| Role      | Phone           | Password            |
+| --------- | --------------- | ------------------- |
 | Citizen A | `+254700000001` | `demo-password-123` |
 | Citizen B | `+254700000002` | `demo-password-123` |
 | Citizen C | `+254700000003` | `demo-password-123` |

@@ -1,60 +1,79 @@
 import * as React from "react";
 import { cn } from "../lib/utils";
 
-export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
-  function Input({ className, ...props }, ref) {
-    return (
-      <input
-        ref={ref}
-        className={cn(
-          "block w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50",
-          className
-        )}
-        {...props}
-      />
-    );
-  }
-);
-
-export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  function Textarea({ className, ...props }, ref) {
-    return (
-      <textarea
-        ref={ref}
-        className={cn(
-          "block w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50",
-          className
-        )}
-        {...props}
-      />
-    );
-  }
-);
-
-export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
-  function Select({ className, children, ...props }, ref) {
-    return (
-      <select
-        ref={ref}
-        className={cn(
-          "block w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50",
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </select>
-    );
-  }
-);
-
-export function Card({ className, children }: { className?: string; children: React.ReactNode }) {
+export const Input = React.forwardRef<
+  HTMLInputElement,
+  React.InputHTMLAttributes<HTMLInputElement>
+>(function Input({ className, ...props }, ref) {
   return (
-    <div className={cn("rounded-lg border border-border bg-card p-4", className)}>{children}</div>
+    <input
+      ref={ref}
+      className={cn(
+        "block w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50",
+        className,
+      )}
+      {...props}
+    />
+  );
+});
+
+export const Textarea = React.forwardRef<
+  HTMLTextAreaElement,
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>
+>(function Textarea({ className, ...props }, ref) {
+  return (
+    <textarea
+      ref={ref}
+      className={cn(
+        "block w-full rounded-md border border-border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50",
+        className,
+      )}
+      {...props}
+    />
+  );
+});
+
+export const Select = React.forwardRef<
+  HTMLSelectElement,
+  React.SelectHTMLAttributes<HTMLSelectElement>
+>(function Select({ className, children, ...props }, ref) {
+  return (
+    <select
+      ref={ref}
+      className={cn(
+        "block w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary disabled:opacity-50",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </select>
+  );
+});
+
+export function Card({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn("rounded-lg border border-border bg-card p-4", className)}
+    >
+      {children}
+    </div>
   );
 }
 
-export function CardHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+export function CardHeader({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
   return (
     <div className="mb-3">
       <h2 className="text-lg font-semibold">{title}</h2>
@@ -68,13 +87,13 @@ const badgeTones: Record<string, string> = {
   primary: "bg-primary/10 text-primary",
   warning: "bg-amber-100 text-amber-800",
   danger: "bg-rose-100 text-rose-800",
-  success: "bg-emerald-100 text-emerald-800"
+  success: "bg-emerald-100 text-emerald-800",
 };
 
 export function Badge({
   tone = "default",
   className,
-  children
+  children,
 }: {
   tone?: keyof typeof badgeTones;
   className?: string;
@@ -85,7 +104,7 @@ export function Badge({
       className={cn(
         "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
         badgeTones[tone],
-        className
+        className,
       )}
     >
       {children}
@@ -125,7 +144,13 @@ export function statusTone(s?: string | null): keyof typeof badgeTones {
   }
 }
 
-export function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+export function Label({
+  children,
+  htmlFor,
+}: {
+  children: React.ReactNode;
+  htmlFor?: string;
+}) {
   return (
     <label htmlFor={htmlFor} className="mb-1 block text-sm font-medium">
       {children}

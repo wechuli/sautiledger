@@ -32,14 +32,16 @@ export type ClusteringOutcome = {
 export async function findOrCreateMandateForSubmission(
   em: EntityManager,
   submission: Submission,
-  ai: AiProcessingResult
+  ai: AiProcessingResult,
 ): Promise<ClusteringOutcome> {
   const mandateRepo = em.getRepository(Mandate);
   const historyRepo = em.getRepository(StatusHistory);
 
   // Deterministic prefilter: same category, same coarse location, not resolved,
   // active within the lookback window.
-  const since = new Date(Date.now() - CANDIDATE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+  const since = new Date(
+    Date.now() - CANDIDATE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
+  );
   const loc = submission.location ?? {};
   const candidates = await mandateRepo.find({
     where: {
@@ -51,10 +53,10 @@ export async function findOrCreateMandateForSubmission(
         ? { ward: loc.ward }
         : loc.county
           ? { county: loc.county }
-          : {})
+          : {}),
     },
     order: { lastActivityAt: "DESC" },
-    take: CANDIDATE_LIMIT
+    take: CANDIDATE_LIMIT,
   });
 
   if (candidates.length > 0) {
@@ -64,17 +66,25 @@ export async function findOrCreateMandateForSubmission(
       candidates: candidates.map((c) => ({
         id: c.id,
         title: c.title,
-        summary: c.summary
-      }))
+        summary: c.summary,
+      })),
     });
 
     if (
       decision.matched_mandate_id &&
       decision.confidence >= MATCH_CONFIDENCE_THRESHOLD
     ) {
-      const matched = candidates.find((c) => c.id === decision.matched_mandate_id);
+      const matched = candidates.find(
+        (c) => c.id === decision.matched_mandate_id,
+      );
       if (matched) {
-        return joinExistingMandate(em, submission, matched, decision.confidence, decision.reason);
+        return joinExistingMandate(
+          em,
+          submission,
+          matched,
+          decision.confidence,
+          decision.reason,
+        );
       }
     }
   }
@@ -87,12 +97,15 @@ async function joinExistingMandate(
   submission: Submission,
   mandate: Mandate,
   confidence: number,
-  reason: string
+  reason: string,
 ): Promise<ClusteringOutcome> {
   const now = new Date();
   mandate.submissionCount = (mandate.submissionCount ?? 0) + 1;
   mandate.lastActivityAt = now;
-  mandate.evidenceStrength = computeEvidenceStrength(mandate.submissionCount, confidence);
+  mandate.evidenceStrength = computeEvidenceStrength(
+    mandate.submissionCount,
+    confidence,
+  );
 
   // Bump urgency if the new submission is more urgent.
   // (Stored urgency on Submission is set by the caller after AI.)
@@ -107,14 +120,14 @@ async function joinExistingMandate(
     mandateId: mandate.id,
     created: false,
     matchConfidence: confidence,
-    reason
+    reason,
   };
 }
 
 async function createNewMandate(
   em: EntityManager,
   submission: Submission,
-  ai: AiProcessingResult
+  ai: AiProcessingResult,
 ): Promise<ClusteringOutcome> {
   const mandateRepo = em.getRepository(Mandate);
   const historyRepo = em.getRepository(StatusHistory);
@@ -128,14 +141,15 @@ async function createNewMandate(
     category: ai.issue_category,
     urgency: ai.urgency,
     status: "new",
-    authorityId: submission.targetAuthorityId ?? ai.suggested_authority_id ?? null,
+    authorityId:
+      submission.targetAuthorityId ?? ai.suggested_authority_id ?? null,
     county: loc.county ?? null,
     constituency: loc.constituency ?? null,
     ward: loc.ward ?? null,
     submissionCount: 1,
     evidenceStrength: computeEvidenceStrength(1, ai.issue_category_confidence),
     firstReportedAt: now,
-    lastActivityAt: now
+    lastActivityAt: now,
   });
 
   const saved = await mandateRepo.save(mandate);
@@ -147,15 +161,15 @@ async function createNewMandate(
       oldStatus: null,
       newStatus: "new",
       changedByLabel: "system:auto-create",
-      note: "Mandate created from clustered submission"
-    })
+      note: "Mandate created from clustered submission",
+    }),
   );
 
   return {
     mandateId: saved.id,
     created: true,
     matchConfidence: 1,
-    reason: "no matching candidate; created new mandate"
+    reason: "no matching candidate; created new mandate",
   };
 }
 

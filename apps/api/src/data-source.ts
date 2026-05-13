@@ -11,11 +11,20 @@ import { Submission } from "./entities/submission.entity.js";
 export const AppDataSource = new DataSource({
   type: "postgres",
   url: env.databaseUrl,
-  entities: [Citizen, Authority, Mandate, Submission, InstitutionResponse, StatusHistory],
+  entities: [
+    Citizen,
+    Authority,
+    Mandate,
+    Submission,
+    InstitutionResponse,
+    StatusHistory,
+  ],
   // tsx-friendly: load migrations from src in dev, from dist in prod.
   migrations: [
-    env.nodeEnv === "production" ? "dist/migrations/*.js" : "src/migrations/*.ts"
+    env.nodeEnv === "production"
+      ? "dist/migrations/*.js"
+      : "src/migrations/*.ts",
   ],
   synchronize: false,
-  logging: env.nodeEnv === "development"
+  logging: env.nodeEnv === "development",
 });

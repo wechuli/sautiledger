@@ -1,9 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { MANDATE_CATEGORIES, MANDATE_STATUSES, URGENCY_LEVELS } from "@sautiledger/shared";
+import {
+  MANDATE_CATEGORIES,
+  MANDATE_STATUSES,
+  URGENCY_LEVELS,
+} from "@sautiledger/shared";
 import type { MandateSummary } from "@sautiledger/shared";
 import { api } from "../lib/api";
-import { Badge, Card, CardHeader, FormError, Input, Select, statusTone, urgencyTone } from "../components/ui";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  FormError,
+  Input,
+  Select,
+  statusTone,
+  urgencyTone,
+} from "../components/ui";
 import { Button } from "../components/button";
 
 export function MandatesListPage() {
@@ -26,7 +39,7 @@ export function MandatesListPage() {
         q: params.get("q") || undefined,
         sort: (params.get("sort") as any) || "recent",
         page,
-        pageSize: 20
+        pageSize: 20,
       })
       .then((res) => {
         setItems(res.items);
@@ -55,7 +68,10 @@ export function MandatesListPage() {
             defaultValue={params.get("q") ?? ""}
             onBlur={(e) => update("q", e.target.value)}
           />
-          <Select value={params.get("category") ?? ""} onChange={(e) => update("category", e.target.value)}>
+          <Select
+            value={params.get("category") ?? ""}
+            onChange={(e) => update("category", e.target.value)}
+          >
             <option value="">All categories</option>
             {MANDATE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -63,7 +79,10 @@ export function MandatesListPage() {
               </option>
             ))}
           </Select>
-          <Select value={params.get("urgency") ?? ""} onChange={(e) => update("urgency", e.target.value)}>
+          <Select
+            value={params.get("urgency") ?? ""}
+            onChange={(e) => update("urgency", e.target.value)}
+          >
             <option value="">All urgencies</option>
             {URGENCY_LEVELS.map((u) => (
               <option key={u} value={u}>
@@ -71,7 +90,10 @@ export function MandatesListPage() {
               </option>
             ))}
           </Select>
-          <Select value={params.get("status") ?? ""} onChange={(e) => update("status", e.target.value)}>
+          <Select
+            value={params.get("status") ?? ""}
+            onChange={(e) => update("status", e.target.value)}
+          >
             <option value="">All statuses</option>
             {MANDATE_STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -84,7 +106,10 @@ export function MandatesListPage() {
             defaultValue={params.get("county") ?? ""}
             onBlur={(e) => update("county", e.target.value)}
           />
-          <Select value={params.get("sort") ?? "recent"} onChange={(e) => update("sort", e.target.value)}>
+          <Select
+            value={params.get("sort") ?? "recent"}
+            onChange={(e) => update("sort", e.target.value)}
+          >
             <option value="recent">Most recent</option>
             <option value="evidence">Strongest evidence</option>
             <option value="urgency">Most urgent</option>
@@ -98,25 +123,43 @@ export function MandatesListPage() {
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : items.length === 0 ? (
         <Card>
-          <p className="text-sm text-muted-foreground">No mandates match these filters.</p>
+          <p className="text-sm text-muted-foreground">
+            No mandates match these filters.
+          </p>
         </Card>
       ) : (
         <ul className="space-y-3">
           {items.map((m) => (
             <li key={m.id}>
               <Card>
-                <Link to={`/mandates/${m.id}`} className="block hover:underline">
+                <Link
+                  to={`/mandates/${m.id}`}
+                  className="block hover:underline"
+                >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{m.title}</span>
                     <Badge tone={urgencyTone(m.urgency)}>{m.urgency}</Badge>
-                    <Badge tone={statusTone(m.status)}>{m.status.replace(/_/g, " ")}</Badge>
+                    <Badge tone={statusTone(m.status)}>
+                      {m.status.replace(/_/g, " ")}
+                    </Badge>
                     <Badge>{m.category}</Badge>
-                    {m.county && <span className="text-xs text-muted-foreground">{m.county}</span>}
-                    {m.ward && <span className="text-xs text-muted-foreground">· {m.ward}</span>}
+                    {m.county && (
+                      <span className="text-xs text-muted-foreground">
+                        {m.county}
+                      </span>
+                    )}
+                    {m.ward && (
+                      <span className="text-xs text-muted-foreground">
+                        · {m.ward}
+                      </span>
+                    )}
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{m.summary}</p>
+                  <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                    {m.summary}
+                  </p>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {m.submissionCount} submission{m.submissionCount === 1 ? "" : "s"} · evidence{" "}
+                    {m.submissionCount} submission
+                    {m.submissionCount === 1 ? "" : "s"} · evidence{" "}
                     {m.evidenceStrength.toFixed(2)}
                     {m.authority && ` · ${m.authority.name}`}
                   </div>

@@ -1,4 +1,10 @@
-import { MigrationInterface, QueryRunner, Table, TableForeignKey, TableIndex } from "typeorm";
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+  TableIndex,
+} from "typeorm";
 
 /**
  * Adds the rest of the domain model on top of the initial `submissions` table:
@@ -19,15 +25,20 @@ export class DomainModel1710000000100 implements MigrationInterface {
       new Table({
         name: "citizens",
         columns: [
-          { name: "id", type: "uuid", isPrimary: true, default: "gen_random_uuid()" },
+          {
+            name: "id",
+            type: "uuid",
+            isPrimary: true,
+            default: "gen_random_uuid()",
+          },
           { name: "phone_hash", type: "varchar", isUnique: true },
           { name: "password_hash", type: "varchar" },
           { name: "county_hint", type: "varchar", isNullable: true },
           { name: "last_login_at", type: "timestamptz", isNullable: true },
           { name: "created_at", type: "timestamptz", default: "now()" },
-          { name: "updated_at", type: "timestamptz", default: "now()" }
-        ]
-      })
+          { name: "updated_at", type: "timestamptz", default: "now()" },
+        ],
+      }),
     );
 
     // -------------------------- authorities ------------------------------
@@ -35,7 +46,12 @@ export class DomainModel1710000000100 implements MigrationInterface {
       new Table({
         name: "authorities",
         columns: [
-          { name: "id", type: "uuid", isPrimary: true, default: "gen_random_uuid()" },
+          {
+            name: "id",
+            type: "uuid",
+            isPrimary: true,
+            default: "gen_random_uuid()",
+          },
           { name: "name", type: "varchar" },
           { name: "level", type: "varchar" },
           { name: "county", type: "varchar", isNullable: true },
@@ -45,13 +61,16 @@ export class DomainModel1710000000100 implements MigrationInterface {
           { name: "contact_email", type: "varchar", isNullable: true },
           { name: "verified", type: "boolean", default: false },
           { name: "created_at", type: "timestamptz", default: "now()" },
-          { name: "updated_at", type: "timestamptz", default: "now()" }
-        ]
-      })
+          { name: "updated_at", type: "timestamptz", default: "now()" },
+        ],
+      }),
     );
     await queryRunner.createIndex(
       "authorities",
-      new TableIndex({ name: "idx_authorities_level_county", columnNames: ["level", "county"] })
+      new TableIndex({
+        name: "idx_authorities_level_county",
+        columnNames: ["level", "county"],
+      }),
     );
 
     // -------------------------- mandates ---------------------------------
@@ -59,7 +78,12 @@ export class DomainModel1710000000100 implements MigrationInterface {
       new Table({
         name: "mandates",
         columns: [
-          { name: "id", type: "uuid", isPrimary: true, default: "gen_random_uuid()" },
+          {
+            name: "id",
+            type: "uuid",
+            isPrimary: true,
+            default: "gen_random_uuid()",
+          },
           { name: "title", type: "varchar" },
           { name: "summary", type: "text" },
           { name: "formal_mandate_text", type: "text" },
@@ -75,9 +99,9 @@ export class DomainModel1710000000100 implements MigrationInterface {
           { name: "first_reported_at", type: "timestamptz" },
           { name: "last_activity_at", type: "timestamptz" },
           { name: "created_at", type: "timestamptz", default: "now()" },
-          { name: "updated_at", type: "timestamptz", default: "now()" }
-        ]
-      })
+          { name: "updated_at", type: "timestamptz", default: "now()" },
+        ],
+      }),
     );
     await queryRunner.createForeignKey(
       "mandates",
@@ -85,19 +109,22 @@ export class DomainModel1710000000100 implements MigrationInterface {
         columnNames: ["authority_id"],
         referencedTableName: "authorities",
         referencedColumnNames: ["id"],
-        onDelete: "SET NULL"
-      })
+        onDelete: "SET NULL",
+      }),
     );
     await queryRunner.createIndex(
       "mandates",
       new TableIndex({
         name: "idx_mandates_category_county_status",
-        columnNames: ["category", "county", "status"]
-      })
+        columnNames: ["category", "county", "status"],
+      }),
     );
     await queryRunner.createIndex(
       "mandates",
-      new TableIndex({ name: "idx_mandates_last_activity_at", columnNames: ["last_activity_at"] })
+      new TableIndex({
+        name: "idx_mandates_last_activity_at",
+        columnNames: ["last_activity_at"],
+      }),
     );
 
     // -------------------------- institution_responses --------------------
@@ -105,16 +132,21 @@ export class DomainModel1710000000100 implements MigrationInterface {
       new Table({
         name: "institution_responses",
         columns: [
-          { name: "id", type: "uuid", isPrimary: true, default: "gen_random_uuid()" },
+          {
+            name: "id",
+            type: "uuid",
+            isPrimary: true,
+            default: "gen_random_uuid()",
+          },
           { name: "mandate_id", type: "uuid" },
           { name: "authority_id", type: "uuid", isNullable: true },
           { name: "responder_label", type: "varchar" },
           { name: "response_text", type: "text" },
           { name: "new_status", type: "varchar", isNullable: true },
           { name: "expected_resolution_date", type: "date", isNullable: true },
-          { name: "created_at", type: "timestamptz", default: "now()" }
-        ]
-      })
+          { name: "created_at", type: "timestamptz", default: "now()" },
+        ],
+      }),
     );
     await queryRunner.createForeignKey(
       "institution_responses",
@@ -122,8 +154,8 @@ export class DomainModel1710000000100 implements MigrationInterface {
         columnNames: ["mandate_id"],
         referencedTableName: "mandates",
         referencedColumnNames: ["id"],
-        onDelete: "CASCADE"
-      })
+        onDelete: "CASCADE",
+      }),
     );
     await queryRunner.createForeignKey(
       "institution_responses",
@@ -131,15 +163,15 @@ export class DomainModel1710000000100 implements MigrationInterface {
         columnNames: ["authority_id"],
         referencedTableName: "authorities",
         referencedColumnNames: ["id"],
-        onDelete: "SET NULL"
-      })
+        onDelete: "SET NULL",
+      }),
     );
     await queryRunner.createIndex(
       "institution_responses",
       new TableIndex({
         name: "idx_institution_responses_mandate_created",
-        columnNames: ["mandate_id", "created_at"]
-      })
+        columnNames: ["mandate_id", "created_at"],
+      }),
     );
 
     // -------------------------- mandate_status_history -------------------
@@ -147,15 +179,20 @@ export class DomainModel1710000000100 implements MigrationInterface {
       new Table({
         name: "mandate_status_history",
         columns: [
-          { name: "id", type: "uuid", isPrimary: true, default: "gen_random_uuid()" },
+          {
+            name: "id",
+            type: "uuid",
+            isPrimary: true,
+            default: "gen_random_uuid()",
+          },
           { name: "mandate_id", type: "uuid" },
           { name: "old_status", type: "varchar", isNullable: true },
           { name: "new_status", type: "varchar" },
           { name: "changed_by_label", type: "varchar" },
           { name: "note", type: "text", isNullable: true },
-          { name: "created_at", type: "timestamptz", default: "now()" }
-        ]
-      })
+          { name: "created_at", type: "timestamptz", default: "now()" },
+        ],
+      }),
     );
     await queryRunner.createForeignKey(
       "mandate_status_history",
@@ -163,15 +200,15 @@ export class DomainModel1710000000100 implements MigrationInterface {
         columnNames: ["mandate_id"],
         referencedTableName: "mandates",
         referencedColumnNames: ["id"],
-        onDelete: "CASCADE"
-      })
+        onDelete: "CASCADE",
+      }),
     );
     await queryRunner.createIndex(
       "mandate_status_history",
       new TableIndex({
         name: "idx_status_history_mandate_created",
-        columnNames: ["mandate_id", "created_at"]
-      })
+        columnNames: ["mandate_id", "created_at"],
+      }),
     );
 
     // -------------------------- submissions: extend ----------------------
@@ -189,7 +226,9 @@ export class DomainModel1710000000100 implements MigrationInterface {
     `);
     // ai_result was NOT NULL in the initial migration; relax it now that
     // submissions may exist in a `pending` state without an AI payload.
-    await queryRunner.query(`ALTER TABLE submissions ALTER COLUMN ai_result DROP NOT NULL`);
+    await queryRunner.query(
+      `ALTER TABLE submissions ALTER COLUMN ai_result DROP NOT NULL`,
+    );
 
     await queryRunner.createForeignKey(
       "submissions",
@@ -197,8 +236,8 @@ export class DomainModel1710000000100 implements MigrationInterface {
         columnNames: ["citizen_id"],
         referencedTableName: "citizens",
         referencedColumnNames: ["id"],
-        onDelete: "SET NULL"
-      })
+        onDelete: "SET NULL",
+      }),
     );
     await queryRunner.createForeignKey(
       "submissions",
@@ -206,8 +245,8 @@ export class DomainModel1710000000100 implements MigrationInterface {
         columnNames: ["target_authority_id"],
         referencedTableName: "authorities",
         referencedColumnNames: ["id"],
-        onDelete: "SET NULL"
-      })
+        onDelete: "SET NULL",
+      }),
     );
     await queryRunner.createForeignKey(
       "submissions",
@@ -215,16 +254,22 @@ export class DomainModel1710000000100 implements MigrationInterface {
         columnNames: ["mandate_id"],
         referencedTableName: "mandates",
         referencedColumnNames: ["id"],
-        onDelete: "SET NULL"
-      })
+        onDelete: "SET NULL",
+      }),
     );
     await queryRunner.createIndex(
       "submissions",
-      new TableIndex({ name: "idx_submissions_citizen_id", columnNames: ["citizen_id"] })
+      new TableIndex({
+        name: "idx_submissions_citizen_id",
+        columnNames: ["citizen_id"],
+      }),
     );
     await queryRunner.createIndex(
       "submissions",
-      new TableIndex({ name: "idx_submissions_mandate_id", columnNames: ["mandate_id"] })
+      new TableIndex({
+        name: "idx_submissions_mandate_id",
+        columnNames: ["mandate_id"],
+      }),
     );
   }
 

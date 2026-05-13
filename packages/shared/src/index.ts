@@ -30,7 +30,7 @@ export const MANDATE_CATEGORIES = [
   "aid",
   "public_finance",
   "resource_exploitation",
-  "other"
+  "other",
 ] as const;
 
 export type MandateCategory = (typeof MANDATE_CATEGORIES)[number];
@@ -49,7 +49,7 @@ export const MANDATE_STATUSES = [
   "in_progress",
   "resolved",
   "disputed",
-  "escalated"
+  "escalated",
 ] as const;
 
 export type MandateStatus = (typeof MANDATE_STATUSES)[number];
@@ -58,7 +58,12 @@ export type MandateStatus = (typeof MANDATE_STATUSES)[number];
 // Authority
 // ---------------------------------------------------------------------
 
-export const AUTHORITY_LEVELS = ["national", "county", "constituency", "ward"] as const;
+export const AUTHORITY_LEVELS = [
+  "national",
+  "county",
+  "constituency",
+  "ward",
+] as const;
 export type AuthorityLevel = (typeof AUTHORITY_LEVELS)[number];
 
 export type AuthoritySummary = {
@@ -109,7 +114,11 @@ export type SubmissionInput = {
   consentToProcess: boolean;
 };
 
-export type SubmissionProcessingStatus = "pending" | "processing" | "processed" | "failed";
+export type SubmissionProcessingStatus =
+  | "pending"
+  | "processing"
+  | "processed"
+  | "failed";
 
 export type SubmissionReceipt = {
   trackingCode: string;
@@ -141,9 +150,10 @@ export const MODERATION_RECOMMENDATIONS = [
   "publish",
   "publish_after_review",
   "hold_for_review",
-  "reject"
+  "reject",
 ] as const;
-export type ModerationRecommendation = (typeof MODERATION_RECOMMENDATIONS)[number];
+export type ModerationRecommendation =
+  (typeof MODERATION_RECOMMENDATIONS)[number];
 
 export const SAFETY_FLAGS = [
   "contains_personal_data",
@@ -154,7 +164,7 @@ export const SAFETY_FLAGS = [
   "names_private_person",
   "sensitive_evidence",
   "possible_incitement",
-  "possible_spam"
+  "possible_spam",
 ] as const;
 export type SafetyFlag = (typeof SAFETY_FLAGS)[number];
 

@@ -2,14 +2,24 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Button } from "../components/button";
-import { Badge, Card, CardHeader, FormError, Input, Label, statusTone } from "../components/ui";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  FormError,
+  Input,
+  Label,
+  statusTone,
+} from "../components/ui";
 import { api } from "../lib/api";
 
 export function TrackingPage() {
   const { code: codeParam } = useParams<{ code?: string }>();
   const navigate = useNavigate();
   const [code, setCode] = useState(codeParam ?? "");
-  const [result, setResult] = useState<Awaited<ReturnType<typeof api.tracking>> | null>(null);
+  const [result, setResult] = useState<Awaited<
+    ReturnType<typeof api.tracking>
+  > | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -43,7 +53,8 @@ export function TrackingPage() {
     <div className="mx-auto max-w-xl space-y-4">
       <h1 className="text-2xl font-bold">Track your submission</h1>
       <p className="text-sm text-muted-foreground">
-        Use the anonymous tracking code you saved when you submitted. We never display your identity.
+        Use the anonymous tracking code you saved when you submitted. We never
+        display your identity.
       </p>
 
       <form className="flex gap-2" onSubmit={onSubmit}>
@@ -73,9 +84,14 @@ export function TrackingPage() {
           </p>
           {result.mandate ? (
             <div className="mt-4 rounded-md border border-border bg-background p-3">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Linked mandate</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Linked mandate
+              </p>
               <p className="mt-1 font-medium">
-                <Link to={`/mandates/${result.mandate.id}`} className="text-primary underline">
+                <Link
+                  to={`/mandates/${result.mandate.id}`}
+                  className="text-primary underline"
+                >
                   {result.mandate.title}
                 </Link>
               </p>

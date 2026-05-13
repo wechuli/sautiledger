@@ -9,7 +9,10 @@ const BCRYPT_COST = 12;
 const JWT_EXPIRES_IN = "30d";
 
 export class AuthError extends Error {
-  constructor(message: string, public readonly statusCode: number) {
+  constructor(
+    message: string,
+    public readonly statusCode: number,
+  ) {
     super(message);
   }
 }
@@ -44,7 +47,9 @@ function hashPhone(phone: string): string {
 }
 
 export function issueToken(citizenId: string): string {
-  return jwt.sign({ sub: citizenId }, env.sessionSecret, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign({ sub: citizenId }, env.sessionSecret, {
+    expiresIn: JWT_EXPIRES_IN,
+  });
 }
 
 export function verifyToken(token: string): string | null {
@@ -78,8 +83,8 @@ export async function registerCitizen(args: {
     repo.create({
       phoneHash,
       passwordHash,
-      countyHint: args.countyHint ?? null
-    })
+      countyHint: args.countyHint ?? null,
+    }),
   );
 
   return { citizen, token: issueToken(citizen.id) };

@@ -20,7 +20,9 @@ export type ResponsivenessScore = {
 const ACK_STATUSES = ["acknowledged", "in_progress", "resolved"];
 const RESOLVED_STATUSES = ["resolved"];
 
-export async function computeResponsivenessIndex(authorityId: string): Promise<ResponsivenessScore> {
+export async function computeResponsivenessIndex(
+  authorityId: string,
+): Promise<ResponsivenessScore> {
   const mandateRepo = AppDataSource.getRepository(Mandate);
   const responseRepo = AppDataSource.getRepository(InstitutionResponse);
 
@@ -33,12 +35,16 @@ export async function computeResponsivenessIndex(authorityId: string): Promise<R
       mandatesAcknowledged: 0,
       mandatesResolved: 0,
       avgFirstResponseHours: null,
-      index: 0
+      index: 0,
     };
   }
 
-  const acknowledged = mandates.filter((m) => ACK_STATUSES.includes(m.status)).length;
-  const resolved = mandates.filter((m) => RESOLVED_STATUSES.includes(m.status)).length;
+  const acknowledged = mandates.filter((m) =>
+    ACK_STATUSES.includes(m.status),
+  ).length;
+  const resolved = mandates.filter((m) =>
+    RESOLVED_STATUSES.includes(m.status),
+  ).length;
 
   // Average hours from mandate creation to first institution response.
   const mandateIds = mandates.map((m) => m.id);
@@ -50,7 +56,8 @@ export async function computeResponsivenessIndex(authorityId: string): Promise<R
 
   const firstByMandate = new Map<string, Date>();
   for (const r of responses) {
-    if (!firstByMandate.has(r.mandateId)) firstByMandate.set(r.mandateId, r.createdAt);
+    if (!firstByMandate.has(r.mandateId))
+      firstByMandate.set(r.mandateId, r.createdAt);
   }
 
   let respondedCount = 0;
@@ -58,7 +65,8 @@ export async function computeResponsivenessIndex(authorityId: string): Promise<R
   for (const m of mandates) {
     const firstAt = firstByMandate.get(m.id);
     if (!firstAt) continue;
-    const hours = (firstAt.getTime() - m.firstReportedAt.getTime()) / (1000 * 60 * 60);
+    const hours =
+      (firstAt.getTime() - m.firstReportedAt.getTime()) / (1000 * 60 * 60);
     if (hours >= 0) {
       totalHours += hours;
       respondedCount += 1;
@@ -70,16 +78,22 @@ export async function computeResponsivenessIndex(authorityId: string): Promise<R
   const resolutionRate = resolved / total;
   // Speed factor: 1 if responded within 24h, decays to 0 over 30 days.
   const speedFactor =
-    avgHours === null ? 0 : Math.max(0, Math.min(1, 1 - Math.max(0, avgHours - 24) / (24 * 30)));
+    avgHours === null
+      ? 0
+      : Math.max(0, Math.min(1, 1 - Math.max(0, avgHours - 24) / (24 * 30)));
 
-  const index = Math.round((0.4 * ackRate + 0.4 * resolutionRate + 0.2 * speedFactor) * 1000) / 1000;
+  const index =
+    Math.round(
+      (0.4 * ackRate + 0.4 * resolutionRate + 0.2 * speedFactor) * 1000,
+    ) / 1000;
 
   return {
     authorityId,
     mandatesTotal: total,
     mandatesAcknowledged: acknowledged,
     mandatesResolved: resolved,
-    avgFirstResponseHours: avgHours === null ? null : Math.round(avgHours * 10) / 10,
-    index
+    avgFirstResponseHours:
+      avgHours === null ? null : Math.round(avgHours * 10) / 10,
+    index,
   };
 }

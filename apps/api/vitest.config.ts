@@ -5,6 +5,6 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     testTimeout: 20000,
-    pool: "forks"
-  }
+    pool: "forks",
+  },
 });

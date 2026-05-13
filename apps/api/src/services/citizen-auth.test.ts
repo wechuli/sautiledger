@@ -8,7 +8,7 @@ describe("normalizeKenyanPhone", () => {
     ["0712345678", "+254712345678"],
     ["712345678", "+254712345678"],
     ["+254 712 345 678", "+254712345678"],
-    ["0112345678", "+254112345678"]
+    ["0112345678", "+254112345678"],
   ])("normalizes %s -> %s", (input, expected) => {
     expect(normalizeKenyanPhone(input)).toBe(expected);
   });
@@ -17,6 +17,6 @@ describe("normalizeKenyanPhone", () => {
     "rejects invalid %s",
     (bad) => {
       expect(() => normalizeKenyanPhone(bad)).toThrow(AuthError);
-    }
+    },
   );
 });

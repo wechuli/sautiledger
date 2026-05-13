@@ -1,11 +1,22 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { api, getAuthToken, setAuthToken, type CitizenProfile } from "./api";
 
 type AuthState = {
   citizen: CitizenProfile | null;
   loading: boolean;
   login: (phone: string, password: string) => Promise<void>;
-  register: (phone: string, password: string, countyHint?: string) => Promise<void>;
+  register: (
+    phone: string,
+    password: string,
+    countyHint?: string,
+  ) => Promise<void>;
   logout: () => void;
 };
 
@@ -47,9 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout() {
         setAuthToken(null);
         setCitizen(null);
-      }
+      },
     }),
-    [citizen, loading]
+    [citizen, loading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -18,7 +18,11 @@ function readBearer(req: Request): string | null {
   return token;
 }
 
-export function optionalCitizen(req: Request, _res: Response, next: NextFunction) {
+export function optionalCitizen(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+) {
   const token = readBearer(req);
   if (token) {
     const id = verifyToken(token);
@@ -27,7 +31,11 @@ export function optionalCitizen(req: Request, _res: Response, next: NextFunction
   next();
 }
 
-export function requireCitizen(req: Request, res: Response, next: NextFunction) {
+export function requireCitizen(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const token = readBearer(req);
   if (!token) {
     res.status(401).json({ error: "Authentication required" });

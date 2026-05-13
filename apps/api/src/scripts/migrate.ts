@@ -10,7 +10,9 @@ async function main() {
   await AppDataSource.initialize();
   try {
     if (cmd === "run") {
-      const applied = await AppDataSource.runMigrations({ transaction: "each" });
+      const applied = await AppDataSource.runMigrations({
+        transaction: "each",
+      });
       if (applied.length === 0) {
         console.log("No pending migrations.");
       } else {
@@ -21,7 +23,9 @@ async function main() {
       console.log("Reverted last migration.");
     } else if (cmd === "show") {
       const pending = await AppDataSource.showMigrations();
-      console.log(pending ? "Pending migrations exist." : "Database is up to date.");
+      console.log(
+        pending ? "Pending migrations exist." : "Database is up to date.",
+      );
     } else {
       console.error(`Unknown command: ${cmd}. Use run|revert|show.`);
       process.exit(2);

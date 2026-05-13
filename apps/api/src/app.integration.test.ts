@@ -23,8 +23,11 @@ d("API integration (Postgres required)", () => {
 
     // Pick any authority for the submission.
     const { Authority } = await import("./entities/authority.entity.js");
-    const auth = await AppDataSource.getRepository(Authority).findOne({ where: {} });
-    if (!auth) throw new Error("Seed authorities before running integration tests");
+    const auth = await AppDataSource.getRepository(Authority).findOne({
+      where: {},
+    });
+    if (!auth)
+      throw new Error("Seed authorities before running integration tests");
     authorityId = auth.id;
   });
 
@@ -48,10 +51,11 @@ d("API integration (Postgres required)", () => {
       .post("/api/submissions")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        originalText: "Water shortage in our ward for over two weeks; borehole is broken.",
+        originalText:
+          "Water shortage in our ward for over two weeks; borehole is broken.",
         targetAuthorityId: authorityId,
         location: { county: "Nairobi", ward: "Mathare" },
-        consentToProcess: true
+        consentToProcess: true,
       });
     expect(res.status).toBe(201);
     expect(res.body.trackingCode).toMatch(/^SL-/);
@@ -73,10 +77,12 @@ d("API integration (Postgres required)", () => {
   });
 
   it("rejects institution writes without a key", async () => {
-    const res = await request(app).patch("/api/mandates/00000000-0000-0000-0000-000000000000/status").send({
-      newStatus: "acknowledged",
-      changedByLabel: "Test"
-    });
+    const res = await request(app)
+      .patch("/api/mandates/00000000-0000-0000-0000-000000000000/status")
+      .send({
+        newStatus: "acknowledged",
+        changedByLabel: "Test",
+      });
     expect([401, 403]).toContain(res.status);
   });
 });

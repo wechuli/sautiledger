@@ -8,7 +8,7 @@ const navItems = [
   { to: "/", label: "Dashboard" },
   { to: "/mandates", label: "Mandates" },
   { to: "/tracking", label: "Track" },
-  { to: "/institution", label: "Institution" }
+  { to: "/institution", label: "Institution" },
 ];
 
 export function Layout() {
@@ -34,7 +34,9 @@ export function Layout() {
                 className={({ isActive }) =>
                   cn(
                     "px-3 py-1.5 rounded-md text-sm font-medium",
-                    isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted",
                   )
                 }
               >
@@ -112,7 +114,9 @@ export function Layout() {
                   className={({ isActive }) =>
                     cn(
                       "rounded-md px-3 py-2 text-sm font-medium",
-                      isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted",
                     )
                   }
                 >
@@ -176,8 +180,8 @@ export function Layout() {
 
       <footer className="border-t border-border bg-card">
         <div className="mx-auto max-w-6xl px-4 py-4 text-xs text-muted-foreground">
-          SautiLedger MVP — anonymized civic accountability for Kenya. Names, phone numbers, and exact
-          locations are never displayed publicly.
+          SautiLedger MVP — anonymized civic accountability for Kenya. Names,
+          phone numbers, and exact locations are never displayed publicly.
         </div>
       </footer>
     </div>

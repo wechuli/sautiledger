@@ -6,7 +6,7 @@ import {
   MODERATION_RECOMMENDATIONS,
   SAFETY_FLAGS,
   URGENCY_LEVELS,
-  type AiProcessingResult
+  type AiProcessingResult,
 } from "@sautiledger/shared";
 import { env } from "../config/env.js";
 import type { MatchInput, ProcessInput } from "./ai-processing.js";
@@ -32,11 +32,11 @@ const aiResultSchema = z.object({
   summary: z.string(),
   recommended_mandate: z.object({
     title: z.string(),
-    body: z.string()
+    body: z.string(),
   }),
   safety_flags: z.array(z.enum(SAFETY_FLAGS)),
   moderation_recommendation: z.enum(MODERATION_RECOMMENDATIONS),
-  possible_duplicate_signals: z.array(z.string())
+  possible_duplicate_signals: z.array(z.string()),
 });
 
 // JSON Schema mirror — OpenAI structured outputs requires explicit JSON Schema
@@ -60,7 +60,7 @@ const responseSchema = {
     "recommended_mandate",
     "safety_flags",
     "moderation_recommendation",
-    "possible_duplicate_signals"
+    "possible_duplicate_signals",
   ],
   properties: {
     detected_language: { type: "string" },
@@ -72,7 +72,11 @@ const responseSchema = {
     responsible_level: { type: "string", enum: [...AUTHORITY_LEVELS] },
     responsible_office: { type: "string" },
     suggested_authority_id: { type: ["string", "null"] },
-    responsible_authority_confidence: { type: "number", minimum: 0, maximum: 1 },
+    responsible_authority_confidence: {
+      type: "number",
+      minimum: 0,
+      maximum: 1,
+    },
     summary: { type: "string" },
     recommended_mandate: {
       type: "object",
@@ -80,13 +84,19 @@ const responseSchema = {
       required: ["title", "body"],
       properties: {
         title: { type: "string" },
-        body: { type: "string" }
-      }
+        body: { type: "string" },
+      },
     },
-    safety_flags: { type: "array", items: { type: "string", enum: [...SAFETY_FLAGS] } },
-    moderation_recommendation: { type: "string", enum: [...MODERATION_RECOMMENDATIONS] },
-    possible_duplicate_signals: { type: "array", items: { type: "string" } }
-  }
+    safety_flags: {
+      type: "array",
+      items: { type: "string", enum: [...SAFETY_FLAGS] },
+    },
+    moderation_recommendation: {
+      type: "string",
+      enum: [...MODERATION_RECOMMENDATIONS],
+    },
+    possible_duplicate_signals: { type: "array", items: { type: "string" } },
+  },
 } as const;
 
 // ---------------------------------------------------------------------
@@ -136,7 +146,7 @@ function buildUserPrompt(input: ProcessInput): string {
     .slice(0, 60) // bound token usage
     .map(
       (a) =>
-        `- id=${a.id} | ${a.name} | level=${a.level}${a.county ? ` | county=${a.county}` : ""}${a.ward ? ` | ward=${a.ward}` : ""}`
+        `- id=${a.id} | ${a.name} | level=${a.level}${a.county ? ` | county=${a.county}` : ""}${a.ward ? ` | ward=${a.ward}` : ""}`,
     )
     .join("\n");
 
@@ -162,22 +172,24 @@ Return JSON matching the required schema.`;
 // Entry point
 // ---------------------------------------------------------------------
 
-export async function processSubmissionWithOpenAi(input: ProcessInput): Promise<AiProcessingResult> {
+export async function processSubmissionWithOpenAi(
+  input: ProcessInput,
+): Promise<AiProcessingResult> {
   const response = await client().chat.completions.create({
     model: env.openaiModel,
     temperature: 0.2,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: buildUserPrompt(input) }
+      { role: "user", content: buildUserPrompt(input) },
     ],
     response_format: {
       type: "json_schema",
       json_schema: {
         name: "sautiledger_submission_analysis",
         strict: true,
-        schema: responseSchema
-      }
-    }
+        schema: responseSchema,
+      },
+    },
   });
 
   const raw = response.choices[0]?.message?.content;
@@ -189,25 +201,30 @@ export async function processSubmissionWithOpenAi(input: ProcessInput): Promise<
   try {
     parsed = JSON.parse(raw);
   } catch (err) {
-    throw new Error(`OpenAI returned non-JSON content: ${(err as Error).message}`);
+    throw new Error(
+      `OpenAI returned non-JSON content: ${(err as Error).message}`,
+    );
   }
 
   const validated = aiResultSchema.safeParse(parsed);
   if (!validated.success) {
-    throw new Error(`OpenAI response failed schema validation: ${validated.error.message}`);
+    throw new Error(
+      `OpenAI response failed schema validation: ${validated.error.message}`,
+    );
   }
 
   // If the model invented an authority id not in the provided list, drop it.
   const validIds = new Set(input.availableAuthorities.map((a) => a.id));
   const suggested_authority_id =
-    validated.data.suggested_authority_id && validIds.has(validated.data.suggested_authority_id)
+    validated.data.suggested_authority_id &&
+    validIds.has(validated.data.suggested_authority_id)
       ? validated.data.suggested_authority_id
       : null;
 
   return {
     ...validated.data,
     suggested_authority_id,
-    generated: true
+    generated: true,
   };
 }
 
@@ -219,7 +236,7 @@ export async function processSubmissionWithOpenAi(input: ProcessInput): Promise<
 const matchSchema = z.object({
   matched_mandate_id: z.string().nullable(),
   confidence: z.number().min(0).max(1),
-  reason: z.string()
+  reason: z.string(),
 });
 
 const matchJsonSchema = {
@@ -229,8 +246,8 @@ const matchJsonSchema = {
   properties: {
     matched_mandate_id: { type: ["string", "null"] },
     confidence: { type: "number", minimum: 0, maximum: 1 },
-    reason: { type: "string" }
-  }
+    reason: { type: "string" },
+  },
 } as const;
 
 const MATCH_SYSTEM_PROMPT = `You decide whether a new civic submission describes the same underlying community concern as one of a small list of existing Community Mandates.
@@ -243,10 +260,13 @@ Rules:
 - "reason" is a short single sentence explaining the decision.`;
 
 export async function matchSubmissionToMandateWithOpenAi(
-  input: MatchInput
+  input: MatchInput,
 ): Promise<MandateMatchDecision> {
   const candidatesText = input.candidates
-    .map((c, i) => `${i + 1}. id=${c.id}\n   title: ${c.title}\n   summary: ${c.summary}`)
+    .map(
+      (c, i) =>
+        `${i + 1}. id=${c.id}\n   title: ${c.title}\n   summary: ${c.summary}`,
+    )
     .join("\n");
 
   const user = `New submission category: ${input.submissionCategory}
@@ -262,16 +282,16 @@ Return JSON matching the required schema. If matched_mandate_id is non-null, it 
     temperature: 0.1,
     messages: [
       { role: "system", content: MATCH_SYSTEM_PROMPT },
-      { role: "user", content: user }
+      { role: "user", content: user },
     ],
     response_format: {
       type: "json_schema",
       json_schema: {
         name: "sautiledger_mandate_match",
         strict: true,
-        schema: matchJsonSchema
-      }
-    }
+        schema: matchJsonSchema,
+      },
+    },
   });
 
   const raw = response.choices[0]?.message?.content;
@@ -279,18 +299,21 @@ Return JSON matching the required schema. If matched_mandate_id is non-null, it 
 
   const parsed = matchSchema.safeParse(JSON.parse(raw));
   if (!parsed.success) {
-    throw new Error(`OpenAI match response failed schema validation: ${parsed.error.message}`);
+    throw new Error(
+      `OpenAI match response failed schema validation: ${parsed.error.message}`,
+    );
   }
 
   const validIds = new Set(input.candidates.map((c) => c.id));
   const matched_mandate_id =
-    parsed.data.matched_mandate_id && validIds.has(parsed.data.matched_mandate_id)
+    parsed.data.matched_mandate_id &&
+    validIds.has(parsed.data.matched_mandate_id)
       ? parsed.data.matched_mandate_id
       : null;
 
   return {
     matched_mandate_id,
     confidence: matched_mandate_id ? parsed.data.confidence : 0,
-    reason: parsed.data.reason
+    reason: parsed.data.reason,
   };
 }

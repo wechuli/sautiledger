@@ -3,7 +3,7 @@ import type {
   AuthoritySummary,
   MandateCategory,
   MandateMatchDecision,
-  Urgency
+  Urgency,
 } from "@sautiledger/shared";
 import { env } from "../config/env.js";
 
@@ -32,20 +32,26 @@ export type MatchInput = {
   candidates: MatchCandidate[];
 };
 
-export async function processSubmissionWithAi(input: ProcessInput): Promise<AiProcessingResult> {
+export async function processSubmissionWithAi(
+  input: ProcessInput,
+): Promise<AiProcessingResult> {
   if (env.aiProvider === "openai" && env.openaiApiKey) {
-    const { processSubmissionWithOpenAi } = await import("./ai-processing.openai.js");
+    const { processSubmissionWithOpenAi } =
+      await import("./ai-processing.openai.js");
     return processSubmissionWithOpenAi(input);
   }
   return mockProcess(input);
 }
 
-export async function matchSubmissionToMandate(input: MatchInput): Promise<MandateMatchDecision> {
+export async function matchSubmissionToMandate(
+  input: MatchInput,
+): Promise<MandateMatchDecision> {
   if (input.candidates.length === 0) {
     return { matched_mandate_id: null, confidence: 0, reason: "no candidates" };
   }
   if (env.aiProvider === "openai" && env.openaiApiKey) {
-    const { matchSubmissionToMandateWithOpenAi } = await import("./ai-processing.openai.js");
+    const { matchSubmissionToMandateWithOpenAi } =
+      await import("./ai-processing.openai.js");
     return matchSubmissionToMandateWithOpenAi(input);
   }
   return mockMatch(input);
@@ -68,10 +74,13 @@ const CATEGORY_KEYWORDS: Record<MandateCategory, string[]> = {
   aid: ["aid", "relief", "msaada", "food", "njaa"],
   public_finance: ["budget", "cdf", "ward fund", "audit"],
   resource_exploitation: ["mining", "logging", "pollution"],
-  other: []
+  other: [],
 };
 
-function pickCategory(text: string): { category: MandateCategory; confidence: number } {
+function pickCategory(text: string): {
+  category: MandateCategory;
+  confidence: number;
+} {
   const lower = text.toLowerCase();
   for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     if (keywords.some((k) => lower.includes(k))) {
@@ -95,36 +104,70 @@ function pickUrgency(text: string): { urgency: Urgency; confidence: number } {
 function pickAuthority(
   category: MandateCategory,
   location: ProcessInput["location"],
-  authorities: AuthoritySummary[]
-): { authority: AuthoritySummary | null; confidence: number; office: string; level: AuthoritySummary["level"] } {
+  authorities: AuthoritySummary[],
+): {
+  authority: AuthoritySummary | null;
+  confidence: number;
+  office: string;
+  level: AuthoritySummary["level"];
+} {
   // Prefer county-level authority whose name contains the category, in the same county.
-  const sameCounty = authorities.filter((a) => !location.county || a.county === location.county || a.level === "national");
-  const byCategoryHint = sameCounty.find((a) => a.name.toLowerCase().includes(category));
+  const sameCounty = authorities.filter(
+    (a) =>
+      !location.county ||
+      a.county === location.county ||
+      a.level === "national",
+  );
+  const byCategoryHint = sameCounty.find((a) =>
+    a.name.toLowerCase().includes(category),
+  );
   if (byCategoryHint) {
     return {
       authority: byCategoryHint,
       confidence: 0.6,
       office: byCategoryHint.name,
-      level: byCategoryHint.level
+      level: byCategoryHint.level,
     };
   }
   // Fall back to any county authority, then national.
   const county = sameCounty.find((a) => a.level === "county");
   if (county) {
-    return { authority: county, confidence: 0.4, office: county.name, level: "county" };
+    return {
+      authority: county,
+      confidence: 0.4,
+      office: county.name,
+      level: "county",
+    };
   }
   const national = authorities.find((a) => a.level === "national");
   if (national) {
-    return { authority: national, confidence: 0.3, office: national.name, level: "national" };
+    return {
+      authority: national,
+      confidence: 0.3,
+      office: national.name,
+      level: "national",
+    };
   }
-  return { authority: null, confidence: 0.2, office: "Responsible county department", level: "county" };
+  return {
+    authority: null,
+    confidence: 0.2,
+    office: "Responsible county department",
+    level: "county",
+  };
 }
 
-function detectLanguage(text: string, hint?: string): { lang: string; confidence: number } {
+function detectLanguage(
+  text: string,
+  hint?: string,
+): { lang: string; confidence: number } {
   if (hint) return { lang: hint, confidence: 0.7 };
-  const swahili = /(maji|barabara|wizi|haraka|kavu|dawa|shamba|taka|njaa|hatari|imekuwa|ngoja)/i.test(text);
+  const swahili =
+    /(maji|barabara|wizi|haraka|kavu|dawa|shamba|taka|njaa|hatari|imekuwa|ngoja)/i.test(
+      text,
+    );
   const english = /[a-z]{4,}/i.test(text);
-  if (swahili && english) return { lang: "mixed (Swahili/Sheng/English)", confidence: 0.7 };
+  if (swahili && english)
+    return { lang: "mixed (Swahili/Sheng/English)", confidence: 0.7 };
   if (swahili) return { lang: "Swahili", confidence: 0.7 };
   if (english) return { lang: "English", confidence: 0.7 };
   return { lang: "unknown", confidence: 0.3 };
@@ -133,11 +176,12 @@ function detectLanguage(text: string, hint?: string): { lang: string; confidence
 async function mockProcess(input: ProcessInput): Promise<AiProcessingResult> {
   const { category, confidence: catConf } = pickCategory(input.originalText);
   const { urgency, confidence: urgConf } = pickUrgency(input.originalText);
-  const { authority, confidence: authConf, office, level } = pickAuthority(
-    category,
-    input.location,
-    input.availableAuthorities
-  );
+  const {
+    authority,
+    confidence: authConf,
+    office,
+    level,
+  } = pickAuthority(category, input.location, input.availableAuthorities);
   const { lang } = detectLanguage(input.originalText, input.languageHint);
 
   return {
@@ -157,12 +201,12 @@ async function mockProcess(input: ProcessInput): Promise<AiProcessingResult> {
         category === "water"
           ? "Restore reliable water access in the affected ward"
           : `Address reported community concern (${category})`,
-      body: "Generated draft for human review. Multiple submissions should be clustered before public display."
+      body: "Generated draft for human review. Multiple submissions should be clustered before public display.",
     },
     safety_flags: [],
     moderation_recommendation: "publish_after_review",
     possible_duplicate_signals: [],
-    generated: true
+    generated: true,
   };
 }
 
@@ -177,7 +221,7 @@ function tokenize(s: string): Set<string> {
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, " ")
       .split(/\s+/)
-      .filter((t) => t.length > 3)
+      .filter((t) => t.length > 3),
   );
 }
 
@@ -197,12 +241,16 @@ function mockMatch(input: MatchInput): MandateMatchDecision {
     if (!best || score > best.score) best = { id: c.id, score };
   }
   if (!best || best.score < 0.2) {
-    return { matched_mandate_id: null, confidence: best?.score ?? 0, reason: "low token overlap" };
+    return {
+      matched_mandate_id: null,
+      confidence: best?.score ?? 0,
+      reason: "low token overlap",
+    };
   }
   return {
     matched_mandate_id: best.id,
     // Stretch jaccard to a more usable 0..1 range; cap at 0.95.
     confidence: Math.min(0.95, 0.5 + best.score),
-    reason: `token-overlap jaccard=${best.score.toFixed(2)}`
+    reason: `token-overlap jaccard=${best.score.toFixed(2)}`,
   };
 }

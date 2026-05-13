@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { MandateDetail } from "@sautiledger/shared";
 import { api } from "../lib/api";
-import { Badge, Card, CardHeader, FormError, statusTone, urgencyTone } from "../components/ui";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  FormError,
+  statusTone,
+  urgencyTone,
+} from "../components/ui";
 
 export function MandateDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +25,8 @@ export function MandateDetailPage() {
   }, [id]);
 
   if (error) return <FormError message={error} />;
-  if (!mandate) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!mandate)
+    return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   return (
     <div className="space-y-4">
@@ -29,26 +37,49 @@ export function MandateDetailPage() {
       <Card>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={urgencyTone(mandate.urgency)}>{mandate.urgency}</Badge>
-          <Badge tone={statusTone(mandate.status)}>{mandate.status.replace(/_/g, " ")}</Badge>
+          <Badge tone={statusTone(mandate.status)}>
+            {mandate.status.replace(/_/g, " ")}
+          </Badge>
           <Badge>{mandate.category}</Badge>
-          {mandate.county && <span className="text-xs text-muted-foreground">{mandate.county}</span>}
-          {mandate.constituency && (
-            <span className="text-xs text-muted-foreground">· {mandate.constituency}</span>
+          {mandate.county && (
+            <span className="text-xs text-muted-foreground">
+              {mandate.county}
+            </span>
           )}
-          {mandate.ward && <span className="text-xs text-muted-foreground">· {mandate.ward}</span>}
+          {mandate.constituency && (
+            <span className="text-xs text-muted-foreground">
+              · {mandate.constituency}
+            </span>
+          )}
+          {mandate.ward && (
+            <span className="text-xs text-muted-foreground">
+              · {mandate.ward}
+            </span>
+          )}
         </div>
         <h1 className="mt-2 text-2xl font-bold">{mandate.title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{mandate.summary}</p>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3 text-sm">
           <Stat label="Submissions" value={String(mandate.submissionCount)} />
-          <Stat label="Evidence strength" value={mandate.evidenceStrength.toFixed(2)} />
-          <Stat label="Authority" value={mandate.authority?.name ?? "Unassigned"} />
+          <Stat
+            label="Evidence strength"
+            value={mandate.evidenceStrength.toFixed(2)}
+          />
+          <Stat
+            label="Authority"
+            value={mandate.authority?.name ?? "Unassigned"}
+          />
         </div>
 
         <div className="mt-4">
-          <CardHeader title="Formal mandate" subtitle="AI-drafted; reviewable by institutions." />
-          <p className="whitespace-pre-line text-sm">{mandate.formalMandateText}</p>
+          <CardHeader
+            title="Formal mandate"
+            subtitle="AI-drafted; reviewable by institutions."
+          />
+          <p className="whitespace-pre-line text-sm">
+            {mandate.formalMandateText}
+          </p>
         </div>
       </Card>
 
@@ -62,15 +93,22 @@ export function MandateDetailPage() {
               <li key={r.id} className="rounded-md border border-border p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{r.responderLabel}</span>
-                  {r.newStatus && <Badge tone={statusTone(r.newStatus)}>{r.newStatus.replace(/_/g, " ")}</Badge>}
+                  {r.newStatus && (
+                    <Badge tone={statusTone(r.newStatus)}>
+                      {r.newStatus.replace(/_/g, " ")}
+                    </Badge>
+                  )}
                   <span className="text-xs text-muted-foreground">
                     {new Date(r.createdAt).toLocaleString()}
                   </span>
                 </div>
-                <p className="mt-2 text-sm whitespace-pre-line">{r.responseText}</p>
+                <p className="mt-2 text-sm whitespace-pre-line">
+                  {r.responseText}
+                </p>
                 {r.expectedResolutionDate && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Expected resolution: {new Date(r.expectedResolutionDate).toLocaleDateString()}
+                    Expected resolution:{" "}
+                    {new Date(r.expectedResolutionDate).toLocaleDateString()}
                   </p>
                 )}
               </li>
@@ -90,9 +128,15 @@ export function MandateDetailPage() {
                 <span className="text-xs text-muted-foreground">
                   {new Date(h.createdAt).toLocaleString()}
                 </span>
-                <Badge tone={statusTone(h.newStatus)}>{h.newStatus.replace(/_/g, " ")}</Badge>
-                <span className="text-xs text-muted-foreground">by {h.changedByLabel}</span>
-                {h.note && <span className="text-muted-foreground">— {h.note}</span>}
+                <Badge tone={statusTone(h.newStatus)}>
+                  {h.newStatus.replace(/_/g, " ")}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  by {h.changedByLabel}
+                </span>
+                {h.note && (
+                  <span className="text-muted-foreground">— {h.note}</span>
+                )}
               </li>
             ))}
           </ol>
@@ -105,7 +149,9 @@ export function MandateDetailPage() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-border bg-background p-3">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
       <p className="text-base font-semibold">{value}</p>
     </div>
   );

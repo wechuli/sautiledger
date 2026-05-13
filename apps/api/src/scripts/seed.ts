@@ -8,16 +8,19 @@ import { Authority } from "../entities/authority.entity.js";
  *
  * Idempotent: re-running only inserts authorities not already present (by name).
  */
-const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> = [
+const seedAuthorities: Array<
+  Omit<Authority, "id" | "createdAt" | "updatedAt">
+> = [
   {
     name: "Ministry of Water, Sanitation and Irrigation",
     level: "national",
     county: null,
     constituency: null,
     ward: null,
-    description: "National ministry responsible for water resources and sanitation policy.",
+    description:
+      "National ministry responsible for water resources and sanitation policy.",
     contactEmail: null,
-    verified: true
+    verified: true,
   },
   {
     name: "Ministry of Health",
@@ -25,9 +28,10 @@ const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> 
     county: null,
     constituency: null,
     ward: null,
-    description: "National ministry responsible for public health policy and major facilities.",
+    description:
+      "National ministry responsible for public health policy and major facilities.",
     contactEmail: null,
-    verified: true
+    verified: true,
   },
   {
     name: "Ministry of Roads and Transport",
@@ -35,9 +39,10 @@ const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> 
     county: null,
     constituency: null,
     ward: null,
-    description: "National ministry responsible for trunk roads and transport infrastructure.",
+    description:
+      "National ministry responsible for trunk roads and transport infrastructure.",
     contactEmail: null,
-    verified: true
+    verified: true,
   },
   {
     name: "Nairobi County Water Department",
@@ -47,7 +52,7 @@ const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> 
     ward: null,
     description: "County-level water department for Nairobi.",
     contactEmail: null,
-    verified: true
+    verified: true,
   },
   {
     name: "Nairobi County Health Department",
@@ -57,7 +62,7 @@ const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> 
     ward: null,
     description: "County-level health services for Nairobi.",
     contactEmail: null,
-    verified: true
+    verified: true,
   },
   {
     name: "Kisumu County Water Department",
@@ -67,7 +72,7 @@ const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> 
     ward: null,
     description: "County-level water department for Kisumu.",
     contactEmail: null,
-    verified: true
+    verified: true,
   },
   {
     name: "Mombasa County Sanitation Department",
@@ -77,7 +82,7 @@ const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> 
     ward: null,
     description: "County-level sanitation and waste management for Mombasa.",
     contactEmail: null,
-    verified: true
+    verified: true,
   },
   {
     name: "Turkana County Health Department",
@@ -87,7 +92,7 @@ const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> 
     ward: null,
     description: "County-level health services for Turkana.",
     contactEmail: null,
-    verified: true
+    verified: true,
   },
   {
     name: "Kibra Constituency Office",
@@ -97,7 +102,7 @@ const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> 
     ward: null,
     description: "MP's constituency office for Kibra.",
     contactEmail: null,
-    verified: false
+    verified: false,
   },
   {
     name: "Mathare Ward Administrator",
@@ -107,7 +112,7 @@ const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> 
     ward: "Mathare",
     description: "Ward administration office for Mathare.",
     contactEmail: null,
-    verified: false
+    verified: false,
   },
   {
     name: "Kondele Ward Administrator",
@@ -117,8 +122,8 @@ const seedAuthorities: Array<Omit<Authority, "id" | "createdAt" | "updatedAt">> 
     ward: "Kondele",
     description: "Ward administration office for Kondele.",
     contactEmail: null,
-    verified: false
-  }
+    verified: false,
+  },
 ];
 
 async function run() {
@@ -137,7 +142,9 @@ async function run() {
     inserted += 1;
   }
 
-  console.log(`Seed complete: ${inserted} inserted, ${skipped} already present.`);
+  console.log(
+    `Seed complete: ${inserted} inserted, ${skipped} already present.`,
+  );
   await AppDataSource.destroy();
 }
 

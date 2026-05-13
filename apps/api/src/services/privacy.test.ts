@@ -28,7 +28,9 @@ describe("createTrackingCode", () => {
   });
 
   it("is unique across calls", () => {
-    const codes = new Set(Array.from({ length: 100 }, () => createTrackingCode()));
+    const codes = new Set(
+      Array.from({ length: 100 }, () => createTrackingCode()),
+    );
     expect(codes.size).toBe(100);
   });
 });

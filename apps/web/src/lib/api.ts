@@ -7,7 +7,7 @@ import type {
   MandateSummary,
   MandateCategory,
   MandateStatus,
-  Urgency
+  Urgency,
 } from "@sautiledger/shared";
 
 const API_BASE = "/api";
@@ -38,11 +38,11 @@ export class ApiError extends Error {
 
 async function request<T>(
   path: string,
-  init: RequestInit & { auth?: boolean; institutionKey?: string } = {}
+  init: RequestInit & { auth?: boolean; institutionKey?: string } = {},
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(init.headers as Record<string, string> | undefined)
+    ...(init.headers as Record<string, string> | undefined),
   };
   if (init.auth && authToken) headers["Authorization"] = `Bearer ${authToken}`;
   if (init.institutionKey) headers["X-Institution-Key"] = init.institutionKey;
@@ -53,7 +53,10 @@ async function request<T>(
   const body = isJson ? await res.json() : await res.text();
   if (!res.ok) {
     const message =
-      (typeof body === "object" && body && "error" in body && (body as any).error) ||
+      (typeof body === "object" &&
+        body &&
+        "error" in body &&
+        (body as any).error) ||
       res.statusText;
     throw new ApiError(message, res.status, body);
   }
@@ -70,22 +73,30 @@ export type CitizenProfile = {
 
 export const api = {
   register(phone: string, password: string, countyHint?: string) {
-    return request<{ token: string; citizen: CitizenProfile }>("/citizens/register", {
-      method: "POST",
-      body: JSON.stringify({ phone, password, countyHint })
-    });
+    return request<{ token: string; citizen: CitizenProfile }>(
+      "/citizens/register",
+      {
+        method: "POST",
+        body: JSON.stringify({ phone, password, countyHint }),
+      },
+    );
   },
   login(phone: string, password: string) {
-    return request<{ token: string; citizen: CitizenProfile }>("/citizens/login", {
-      method: "POST",
-      body: JSON.stringify({ phone, password })
-    });
+    return request<{ token: string; citizen: CitizenProfile }>(
+      "/citizens/login",
+      {
+        method: "POST",
+        body: JSON.stringify({ phone, password }),
+      },
+    );
   },
   me() {
     return request<CitizenProfile>("/citizens/me", { auth: true });
   },
   mySubmissions() {
-    return request<CitizenSubmissionView[]>("/citizens/me/submissions", { auth: true });
+    return request<CitizenSubmissionView[]>("/citizens/me/submissions", {
+      auth: true,
+    });
   },
 
   authorities(params: { level?: string; county?: string; q?: string } = {}) {
@@ -100,7 +111,12 @@ export const api = {
   submit(input: {
     originalText: string;
     languageHint?: string;
-    location: { county?: string; constituency?: string; ward?: string; country?: "Kenya" };
+    location: {
+      county?: string;
+      constituency?: string;
+      ward?: string;
+      country?: "Kenya";
+    };
     targetAuthorityId: string;
     consentToProcess: true;
   }) {
@@ -113,7 +129,10 @@ export const api = {
     }>("/submissions", {
       method: "POST",
       auth: true,
-      body: JSON.stringify({ ...input, location: { country: "Kenya", ...input.location } })
+      body: JSON.stringify({
+        ...input,
+        location: { country: "Kenya", ...input.location },
+      }),
     });
   },
 
@@ -128,10 +147,11 @@ export const api = {
       sort?: "recent" | "evidence" | "urgency";
       page?: number;
       pageSize?: number;
-    } = {}
+    } = {},
   ) {
     const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") qs.set(k, String(v));
+    for (const [k, v] of Object.entries(params))
+      if (v !== undefined && v !== "") qs.set(k, String(v));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return request<{
       page: number;
@@ -153,25 +173,31 @@ export const api = {
       responseText: string;
       newStatus?: MandateStatus;
       expectedResolutionDate?: string;
-    }
+    },
   ) {
-    return request<{ id: string; createdAt: string }>(`/mandates/${id}/responses`, {
-      method: "POST",
-      institutionKey,
-      body: JSON.stringify(body)
-    });
+    return request<{ id: string; createdAt: string }>(
+      `/mandates/${id}/responses`,
+      {
+        method: "POST",
+        institutionKey,
+        body: JSON.stringify(body),
+      },
+    );
   },
 
   patchStatus(
     id: string,
     institutionKey: string,
-    body: { newStatus: MandateStatus; changedByLabel: string; note?: string }
+    body: { newStatus: MandateStatus; changedByLabel: string; note?: string },
   ) {
-    return request<{ id: string; status: MandateStatus }>(`/mandates/${id}/status`, {
-      method: "PATCH",
-      institutionKey,
-      body: JSON.stringify(body)
-    });
+    return request<{ id: string; status: MandateStatus }>(
+      `/mandates/${id}/status`,
+      {
+        method: "PATCH",
+        institutionKey,
+        body: JSON.stringify(body),
+      },
+    );
   },
 
   tracking(code: string) {
@@ -193,7 +219,12 @@ export const api = {
 
   dashboardStats() {
     return request<DashboardStats>("/dashboard/stats");
-  }
+  },
 };
 
-export type { MandateSummary, MandateDetail, DashboardStats, InstitutionResponseView };
+export type {
+  MandateSummary,
+  MandateDetail,
+  DashboardStats,
+  InstitutionResponseView,
+};

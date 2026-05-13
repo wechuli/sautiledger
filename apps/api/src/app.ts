@@ -28,9 +28,10 @@ export function createApp() {
       logger,
       // Drop the noisy default `req`/`res` serializers for static asset paths.
       autoLogging: {
-        ignore: (req: { url?: string }) => req.url?.startsWith("/assets/") ?? false
-      }
-    })
+        ignore: (req: { url?: string }) =>
+          req.url?.startsWith("/assets/") ?? false,
+      },
+    }),
   );
 
   app.use("/api/health", healthRouter);
@@ -44,18 +45,29 @@ export function createApp() {
   const staticPath = path.resolve(__dirname, "../../web/dist");
   if (env.serveStaticFrontend && env.nodeEnv === "production") {
     app.use(express.static(staticPath));
-    app.get("*", (_req, res) => res.sendFile(path.join(staticPath, "index.html")));
+    app.get("*", (_req, res) =>
+      res.sendFile(path.join(staticPath, "index.html")),
+    );
   }
 
-  app.use((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    if (error instanceof ZodError) {
-      res.status(400).json({ error: "Invalid request", details: error.flatten() });
-      return;
-    }
+  app.use(
+    (
+      error: unknown,
+      req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction,
+    ) => {
+      if (error instanceof ZodError) {
+        res
+          .status(400)
+          .json({ error: "Invalid request", details: error.flatten() });
+        return;
+      }
 
-    (req as any).log?.error?.({ err: error }, "unhandled error");
-    res.status(500).json({ error: "Internal server error" });
-  });
+      (req as any).log?.error?.({ err: error }, "unhandled error");
+      res.status(500).json({ error: "Internal server error" });
+    },
+  );
 
   return app;
 }

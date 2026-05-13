@@ -7,7 +7,7 @@ import {
   URGENCY_LEVELS,
   type MandateDetail,
   type MandateStatus,
-  type MandateSummary
+  type MandateSummary,
 } from "@sautiledger/shared";
 import { AppDataSource } from "../data-source.js";
 import { Authority } from "../entities/authority.entity.js";
@@ -30,7 +30,7 @@ const listQuerySchema = z.object({
   q: z.string().min(1).max(200).optional(),
   sort: z.enum(["recent", "evidence", "urgency"]).optional().default("recent"),
   page: z.coerce.number().int().min(1).optional().default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).optional().default(20)
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
 });
 
 function toMandateSummary(m: Mandate): MandateSummary {
@@ -52,13 +52,13 @@ function toMandateSummary(m: Mandate): MandateSummary {
           county: m.authority.county,
           constituency: m.authority.constituency,
           ward: m.authority.ward,
-          verified: m.authority.verified
+          verified: m.authority.verified,
         }
       : null,
     submissionCount: m.submissionCount,
     evidenceStrength: m.evidenceStrength,
     firstReportedAt: m.firstReportedAt.toISOString(),
-    lastActivityAt: m.lastActivityAt.toISOString()
+    lastActivityAt: m.lastActivityAt.toISOString(),
   };
 }
 
@@ -71,31 +71,42 @@ mandatesRouter.get("/", async (req, res, next) => {
       .createQueryBuilder("m")
       .leftJoinAndSelect("m.authority", "a");
 
-    if (q.category) qb.andWhere("m.category = :category", { category: q.category });
+    if (q.category)
+      qb.andWhere("m.category = :category", { category: q.category });
     if (q.urgency) qb.andWhere("m.urgency = :urgency", { urgency: q.urgency });
     if (q.status) qb.andWhere("m.status = :status", { status: q.status });
     if (q.county) qb.andWhere("m.county = :county", { county: q.county });
-    if (q.constituency) qb.andWhere("m.constituency = :constituency", { constituency: q.constituency });
+    if (q.constituency)
+      qb.andWhere("m.constituency = :constituency", {
+        constituency: q.constituency,
+      });
     if (q.ward) qb.andWhere("m.ward = :ward", { ward: q.ward });
-    if (q.authorityId) qb.andWhere("m.authority_id = :aid", { aid: q.authorityId });
+    if (q.authorityId)
+      qb.andWhere("m.authority_id = :aid", { aid: q.authorityId });
     if (q.q) {
       qb.andWhere(
         new Brackets((b) => {
-          b.where("m.title ILIKE :q", { q: `%${q.q}%` }).orWhere("m.summary ILIKE :q", {
-            q: `%${q.q}%`
-          });
-        })
+          b.where("m.title ILIKE :q", { q: `%${q.q}%` }).orWhere(
+            "m.summary ILIKE :q",
+            {
+              q: `%${q.q}%`,
+            },
+          );
+        }),
       );
     }
 
     switch (q.sort) {
       case "evidence":
-        qb.orderBy("m.evidence_strength", "DESC").addOrderBy("m.last_activity_at", "DESC");
+        qb.orderBy("m.evidence_strength", "DESC").addOrderBy(
+          "m.last_activity_at",
+          "DESC",
+        );
         break;
       case "urgency":
         qb.orderBy(
           "CASE m.urgency WHEN 'critical' THEN 4 WHEN 'high' THEN 3 WHEN 'medium' THEN 2 WHEN 'low' THEN 1 ELSE 0 END",
-          "DESC"
+          "DESC",
         ).addOrderBy("m.last_activity_at", "DESC");
         break;
       default:
@@ -109,7 +120,7 @@ mandatesRouter.get("/", async (req, res, next) => {
       page: q.page,
       pageSize: q.pageSize,
       total,
-      items: rows.map(toMandateSummary)
+      items: rows.map(toMandateSummary),
     });
   } catch (err) {
     next(err);
@@ -122,7 +133,7 @@ mandatesRouter.get("/:id", async (req, res, next) => {
     const id = z.string().uuid().parse(req.params.id);
     const mandate = await AppDataSource.getRepository(Mandate).findOne({
       where: { id },
-      relations: { authority: true }
+      relations: { authority: true },
     });
     if (!mandate) {
       res.status(404).json({ error: "Mandate not found" });
@@ -132,12 +143,12 @@ mandatesRouter.get("/:id", async (req, res, next) => {
     const [responses, history] = await Promise.all([
       AppDataSource.getRepository(InstitutionResponse).find({
         where: { mandateId: id },
-        order: { createdAt: "ASC" }
+        order: { createdAt: "ASC" },
       }),
       AppDataSource.getRepository(StatusHistory).find({
         where: { mandateId: id },
-        order: { createdAt: "ASC" }
-      })
+        order: { createdAt: "ASC" },
+      }),
     ]);
 
     const detail: MandateDetail = {
@@ -151,7 +162,7 @@ mandatesRouter.get("/:id", async (req, res, next) => {
         expectedResolutionDate: r.expectedResolutionDate
           ? r.expectedResolutionDate.toISOString()
           : null,
-        createdAt: r.createdAt.toISOString()
+        createdAt: r.createdAt.toISOString(),
       })),
       statusHistory: history.map((h) => ({
         id: h.id,
@@ -159,8 +170,8 @@ mandatesRouter.get("/:id", async (req, res, next) => {
         newStatus: h.newStatus,
         changedByLabel: h.changedByLabel,
         note: h.note ?? null,
-        createdAt: h.createdAt.toISOString()
-      }))
+        createdAt: h.createdAt.toISOString(),
+      })),
     };
     res.json(detail);
   } catch (err) {
@@ -172,9 +183,11 @@ mandatesRouter.get("/:id", async (req, res, next) => {
 mandatesRouter.get("/:id/responses", async (req, res, next) => {
   try {
     const id = z.string().uuid().parse(req.params.id);
-    const responses = await AppDataSource.getRepository(InstitutionResponse).find({
+    const responses = await AppDataSource.getRepository(
+      InstitutionResponse,
+    ).find({
       where: { mandateId: id },
-      order: { createdAt: "ASC" }
+      order: { createdAt: "ASC" },
     });
     res.json(
       responses.map((r) => ({
@@ -185,8 +198,8 @@ mandatesRouter.get("/:id/responses", async (req, res, next) => {
         expectedResolutionDate: r.expectedResolutionDate
           ? r.expectedResolutionDate.toISOString()
           : null,
-        createdAt: r.createdAt.toISOString()
-      }))
+        createdAt: r.createdAt.toISOString(),
+      })),
     );
   } catch (err) {
     next(err);
@@ -201,7 +214,7 @@ const responseBodySchema = z.object({
   responderLabel: z.string().min(2).max(120),
   responseText: z.string().min(5).max(5000),
   newStatus: z.enum(MANDATE_STATUSES).optional(),
-  expectedResolutionDate: z.string().datetime().optional()
+  expectedResolutionDate: z.string().datetime().optional(),
 });
 
 mandatesRouter.post(
@@ -226,8 +239,8 @@ mandatesRouter.post(
             newStatus: body.newStatus ?? null,
             expectedResolutionDate: body.expectedResolutionDate
               ? new Date(body.expectedResolutionDate)
-              : null
-          })
+              : null,
+          }),
         );
 
         // Optional status transition.
@@ -242,8 +255,8 @@ mandatesRouter.post(
               oldStatus,
               newStatus: body.newStatus,
               changedByLabel: body.responderLabel,
-              note: "Status updated via response"
-            })
+              note: "Status updated via response",
+            }),
           );
         } else {
           mandate.lastActivityAt = new Date();
@@ -259,18 +272,18 @@ mandatesRouter.post(
       }
       res.status(201).json({
         id: saved.id,
-        createdAt: saved.createdAt.toISOString()
+        createdAt: saved.createdAt.toISOString(),
       });
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 const statusBodySchema = z.object({
   newStatus: z.enum(MANDATE_STATUSES),
   changedByLabel: z.string().min(2).max(120),
-  note: z.string().max(2000).optional()
+  note: z.string().max(2000).optional(),
 });
 
 mandatesRouter.patch(
@@ -297,8 +310,8 @@ mandatesRouter.patch(
             oldStatus,
             newStatus: body.newStatus,
             changedByLabel: body.changedByLabel,
-            note: body.note ?? null
-          })
+            note: body.note ?? null,
+          }),
         );
         return mandate;
       });
@@ -311,5 +324,5 @@ mandatesRouter.patch(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );

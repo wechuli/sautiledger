@@ -12,7 +12,7 @@ trackingRouter.get("/:code", async (req, res, next) => {
   try {
     const code = z.string().min(6).max(64).parse(req.params.code);
     const submission = await AppDataSource.getRepository(Submission).findOne({
-      where: { trackingCode: code }
+      where: { trackingCode: code },
     });
     if (!submission) {
       res.status(404).json({ error: "Tracking code not found" });
@@ -22,7 +22,7 @@ trackingRouter.get("/:code", async (req, res, next) => {
     let mandate: Mandate | null = null;
     if (submission.mandateId) {
       mandate = await AppDataSource.getRepository(Mandate).findOne({
-        where: { id: submission.mandateId }
+        where: { id: submission.mandateId },
       });
     }
 
@@ -38,9 +38,9 @@ trackingRouter.get("/:code", async (req, res, next) => {
             title: mandate.title,
             status: mandate.status,
             submissionCount: mandate.submissionCount,
-            lastActivityAt: mandate.lastActivityAt.toISOString()
+            lastActivityAt: mandate.lastActivityAt.toISOString(),
           }
-        : null
+        : null,
     });
   } catch (err) {
     next(err);

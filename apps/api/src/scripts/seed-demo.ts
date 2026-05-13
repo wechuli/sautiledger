@@ -8,7 +8,10 @@ import { Mandate } from "../entities/mandate.entity.js";
 import { StatusHistory } from "../entities/status-history.entity.js";
 import { Submission } from "../entities/submission.entity.js";
 import { normalizeKenyanPhone } from "../services/citizen-auth.js";
-import { createTrackingCode, hashContactIdentifier } from "../services/privacy.js";
+import {
+  createTrackingCode,
+  hashContactIdentifier,
+} from "../services/privacy.js";
 
 // ---------------------------------------------------------------------
 // Demo seed: 3 citizens, 3 mandates with clustered submissions, and
@@ -27,7 +30,11 @@ type DemoMandate = {
   constituency?: string;
   ward?: string;
   submissions: Array<{ phone: string; text: string }>;
-  responses: Array<{ responderLabel: string; responseText: string; newStatus?: Mandate["status"] }>;
+  responses: Array<{
+    responderLabel: string;
+    responseText: string;
+    newStatus?: Mandate["status"];
+  }>;
 };
 
 const DEMO_PHONES = ["+254700000001", "+254700000002", "+254700000003"];
@@ -50,25 +57,25 @@ const demoMandates: DemoMandate[] = [
     submissions: [
       {
         phone: DEMO_PHONES[0],
-        text: "Huku maji imekuwa shida for weeks. Borehole iko dead na chief anasema tu ngoja."
+        text: "Huku maji imekuwa shida for weeks. Borehole iko dead na chief anasema tu ngoja.",
       },
       {
         phone: DEMO_PHONES[1],
-        text: "We've had no water in our area for over two weeks. The community borehole stopped working."
+        text: "We've had no water in our area for over two weeks. The community borehole stopped working.",
       },
       {
         phone: DEMO_PHONES[2],
-        text: "Maji haitoki, na hakuna jibu kutoka kwa county. We need help."
-      }
+        text: "Maji haitoki, na hakuna jibu kutoka kwa county. We need help.",
+      },
     ],
     responses: [
       {
         responderLabel: "Nairobi County Water Office",
         responseText:
           "We have received the reports and dispatched a technical team to inspect the borehole this week. We will share a restoration timeline by Friday.",
-        newStatus: "acknowledged"
-      }
-    ]
+        newStatus: "acknowledged",
+      },
+    ],
   },
   {
     title: "Restock dispensary medicine in Kondele ward",
@@ -86,21 +93,21 @@ const demoMandates: DemoMandate[] = [
     submissions: [
       {
         phone: DEMO_PHONES[0],
-        text: "The dispensary has had no medicine for two months. We have to travel to town for basic painkillers."
+        text: "The dispensary has had no medicine for two months. We have to travel to town for basic painkillers.",
       },
       {
         phone: DEMO_PHONES[1],
-        text: "Dispensary yetu haina dawa kabisa. Watoto wanaumwa na tunaambiwa tununue private."
-      }
+        text: "Dispensary yetu haina dawa kabisa. Watoto wanaumwa na tunaambiwa tununue private.",
+      },
     ],
     responses: [
       {
         responderLabel: "Kisumu County Health Office",
         responseText:
           "We are aware of the stockouts and are coordinating with KEMSA. A first restock is expected within 10 days.",
-        newStatus: "in_progress"
-      }
-    ]
+        newStatus: "in_progress",
+      },
+    ],
   },
   {
     title: "Repair impassable ward road in Kibra",
@@ -118,11 +125,11 @@ const demoMandates: DemoMandate[] = [
     submissions: [
       {
         phone: DEMO_PHONES[2],
-        text: "Barabara ya ward yetu imeharibika na magari ya wagonjwa yanakwama. Hii ni emergency."
-      }
+        text: "Barabara ya ward yetu imeharibika na magari ya wagonjwa yanakwama. Hii ni emergency.",
+      },
     ],
-    responses: []
-  }
+    responses: [],
+  },
 ];
 
 async function ensureCitizen(phone: string): Promise<Citizen> {
@@ -150,12 +157,18 @@ async function run() {
   let createdResponses = 0;
 
   for (const demo of demoMandates) {
-    const existing = await mandateRepo.findOne({ where: { title: demo.title } });
+    const existing = await mandateRepo.findOne({
+      where: { title: demo.title },
+    });
     if (existing) continue;
 
-    const authority = await authorityRepo.findOne({ where: { name: demo.authorityName } });
+    const authority = await authorityRepo.findOne({
+      where: { name: demo.authorityName },
+    });
     if (!authority) {
-      console.warn(`Skipping mandate "${demo.title}": authority not found (run authority seed first).`);
+      console.warn(
+        `Skipping mandate "${demo.title}": authority not found (run authority seed first).`,
+      );
       continue;
     }
 
@@ -175,11 +188,17 @@ async function run() {
         submissionCount: demo.submissions.length,
         evidenceStrength:
           Math.round(
-            (0.6 * Math.min(1, Math.log10(Math.max(1, demo.submissions.length)) / 2) + 0.4 * 0.8) * 1000
+            (0.6 *
+              Math.min(
+                1,
+                Math.log10(Math.max(1, demo.submissions.length)) / 2,
+              ) +
+              0.4 * 0.8) *
+              1000,
           ) / 1000,
         firstReportedAt: now,
-        lastActivityAt: now
-      })
+        lastActivityAt: now,
+      }),
     );
     createdMandates += 1;
 
@@ -189,8 +208,8 @@ async function run() {
         oldStatus: null,
         newStatus: "new",
         changedByLabel: "seed:demo",
-        note: "Demo mandate created via seed"
-      })
+        note: "Demo mandate created via seed",
+      }),
     );
 
     // Submissions
@@ -212,10 +231,10 @@ async function run() {
             country: "Kenya",
             county: demo.county,
             constituency: demo.constituency,
-            ward: demo.ward
+            ward: demo.ward,
           },
-          aiResult: null
-        })
+          aiResult: null,
+        }),
       );
       createdSubmissions += 1;
     }
@@ -228,8 +247,8 @@ async function run() {
           authorityId: authority.id,
           responderLabel: r.responderLabel,
           responseText: r.responseText,
-          newStatus: r.newStatus ?? null
-        })
+          newStatus: r.newStatus ?? null,
+        }),
       );
       createdResponses += 1;
       if (r.newStatus && r.newStatus !== "new") {
@@ -239,15 +258,15 @@ async function run() {
             oldStatus: "new",
             newStatus: r.newStatus,
             changedByLabel: r.responderLabel,
-            note: "Status set via demo response"
-          })
+            note: "Status set via demo response",
+          }),
         );
       }
     }
   }
 
   console.log(
-    `Demo seed complete: ${createdMandates} mandates, ${createdSubmissions} submissions, ${createdResponses} responses.`
+    `Demo seed complete: ${createdMandates} mandates, ${createdSubmissions} submissions, ${createdResponses} responses.`,
   );
   await AppDataSource.destroy();
 }
