@@ -13,8 +13,8 @@ SautiLedger sits in that gap.
 
 ## What the platform does
 
-1. **A citizen submits a concern** — in English, Swahili, Sheng, or mixed language — from a mobile-first, low-bandwidth interface. No login required. They pick the responsible scope (national, county, constituency, or ward) and the relevant Kenyan boundary via cascading dropdowns.
-2. **The backend stores the original text safely** under a salted hash and issues an **anonymous tracking code** the citizen can use to follow the issue later, without revealing who submitted it.
+1. **A citizen signs in or registers with a phone number and password**, then submits a concern — in English, Swahili, Sheng, or mixed language — from a mobile-first, low-bandwidth interface. Phone numbers are the most accessible identifier for the communities we serve, so they're the only credential required. They pick the responsible scope (national, county, constituency, or ward) and the relevant Kenyan boundary via cascading dropdowns.
+2. **The phone number is never exposed.** It's normalized to Kenyan E.164 and stored only as a salted SHA-256 hash internally. The backend stores the original text safely and issues an **anonymous tracking code** the citizen can use to follow the issue later — nothing on any public surface ever ties a submission back to the citizen.
 3. **AI normalizes the message** — detects language, translates as needed, classifies the issue (e.g. water, health, education, infrastructure, security, governance), scores urgency, derives the responsible office from scope + location, and drafts a formal mandate. All AI output is marked as generated, is reviewable, and is editable.
 4. **Similar submissions are clustered** into a single **Community Mandate** — an anonymized, plain-language statement of a shared community priority backed by a count of supporting submissions and an evidence-strength signal.
 5. **A public dashboard surfaces the mandates** by scope, county, constituency, ward, category, urgency, and status — graph-rich and easy to scan. Individual personal data is never exposed; only aggregates.
@@ -31,7 +31,7 @@ SautiLedger sits in that gap.
 
 ## Design principles
 
-- **Privacy by default.** Public views show aggregated mandates; raw submissions, names, phone numbers, and exact GPS never appear publicly. Identifiers are hashed with a server-side salt.
+- **Privacy by default.** Public views show aggregated mandates; raw submissions, phone numbers, and exact GPS never appear publicly. Phone numbers are stored only as a salted SHA-256 hash internally so we can still link a citizen to their own tracking codes without exposing identity.
 - **Nonpartisan, institution-focused.** Language targets responsible offices, not individuals or political actors.
 - **Reviewable AI.** Every AI-generated category, urgency, routing, and mandate draft is editable, marked as generated, and overridable.
 - **Mobile-first, low-bandwidth.** Small payloads, resilient flows, clear copy in everyday language.
@@ -137,7 +137,7 @@ The Vite dev server proxies `/api` requests to the API.
 
 ### 5. Sign in / institution console
 
-Register a citizen account from `/auth/register` (phone + password). Anonymous submissions also work without an account.
+A citizen account (phone + password) is required to submit. Register at `/auth/register` — phone numbers are the most accessible identifier for our users, and they're stored only as a salted hash internally; nothing on public surfaces is ever tied back to the citizen.
 
 To use the institution console at `/institution`, paste the value of
 `INSTITUTION_DEMO_KEY` from your `.env` (default: `demo-institution-key`).
@@ -153,9 +153,9 @@ The app is served from <http://localhost:3000> (Express serves the built React f
 ## Demo Walkthrough
 
 1. Visit <http://localhost:5173> — the public dashboard renders charts powered by any seeded or submitted mandates.
-2. Register a citizen account from `/auth/register`, or submit anonymously.
+2. Register a citizen account from `/auth/register` (phone + password) and sign in. Submissions require a logged-in citizen so tracking codes can be linked back to that citizen — but never publicly.
 3. Open **Submit a concern** and post a new informal report. The API generates a tracking code and either joins an existing Community Mandate or creates a new one (mock AI by default).
-4. Open **My submissions** to see your recent tracking codes (requires signing in).
+4. Open **My submissions** to see your recent tracking codes.
 5. Browse `/mandates` to filter by scope, county, constituency, ward, category, and urgency.
 6. Visit `/tracking` and paste a tracking code to see anonymous status updates.
 7. Open `/institution`, enter the institution key from your `.env`, then acknowledge or update one of the mandates.
