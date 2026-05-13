@@ -4,13 +4,14 @@ import { Brackets } from "typeorm";
 import {
   MANDATE_CATEGORIES,
   MANDATE_STATUSES,
+  SCOPE_LEVELS,
   URGENCY_LEVELS,
+  responsibleOffice,
   type MandateDetail,
   type MandateStatus,
   type MandateSummary,
 } from "@sautiledger/shared";
 import { AppDataSource } from "../data-source.js";
-import { Authority } from "../entities/authority.entity.js";
 import { InstitutionResponse } from "../entities/institution-response.entity.js";
 import { Mandate } from "../entities/mandate.entity.js";
 import { StatusHistory } from "../entities/status-history.entity.js";
@@ -23,10 +24,10 @@ const listQuerySchema = z.object({
   category: z.enum(MANDATE_CATEGORIES).optional(),
   urgency: z.enum(URGENCY_LEVELS).optional(),
   status: z.enum(MANDATE_STATUSES).optional(),
+  scopeLevel: z.enum(SCOPE_LEVELS).optional(),
   county: z.string().optional(),
   constituency: z.string().optional(),
   ward: z.string().optional(),
-  authorityId: z.string().uuid().optional(),
   q: z.string().min(1).max(200).optional(),
   sort: z.enum(["recent", "evidence", "urgency"]).optional().default("recent"),
   page: z.coerce.number().int().min(1).optional().default(1),
@@ -44,17 +45,15 @@ function toMandateSummary(m: Mandate): MandateSummary {
     county: m.county ?? null,
     constituency: m.constituency ?? null,
     ward: m.ward ?? null,
-    authority: m.authority
-      ? {
-          id: m.authority.id,
-          name: m.authority.name,
-          level: m.authority.level,
-          county: m.authority.county,
-          constituency: m.authority.constituency,
-          ward: m.authority.ward,
-          verified: m.authority.verified,
-        }
-      : null,
+    scopeLevel: m.scopeLevel,
+    responsibleOffice:
+      m.responsibleOffice ||
+      responsibleOffice(m.scopeLevel, {
+        country: "Kenya",
+        county: m.county ?? undefined,
+        constituency: m.constituency ?? undefined,
+        ward: m.ward ?? undefined,
+      }),
     submissionCount: m.submissionCount,
     evidenceStrength: m.evidenceStrength,
     firstReportedAt: m.firstReportedAt.toISOString(),
@@ -62,35 +61,30 @@ function toMandateSummary(m: Mandate): MandateSummary {
   };
 }
 
-// GET /api/mandates — public, filtered, paginated
 mandatesRouter.get("/", async (req, res, next) => {
   try {
     const q = listQuerySchema.parse(req.query);
     const repo = AppDataSource.getRepository(Mandate);
-    const qb = repo
-      .createQueryBuilder("m")
-      .leftJoinAndSelect("m.authority", "a");
+    const qb = repo.createQueryBuilder("m");
 
     if (q.category)
       qb.andWhere("m.category = :category", { category: q.category });
     if (q.urgency) qb.andWhere("m.urgency = :urgency", { urgency: q.urgency });
     if (q.status) qb.andWhere("m.status = :status", { status: q.status });
+    if (q.scopeLevel)
+      qb.andWhere("m.scopeLevel = :scopeLevel", { scopeLevel: q.scopeLevel });
     if (q.county) qb.andWhere("m.county = :county", { county: q.county });
     if (q.constituency)
       qb.andWhere("m.constituency = :constituency", {
         constituency: q.constituency,
       });
     if (q.ward) qb.andWhere("m.ward = :ward", { ward: q.ward });
-    if (q.authorityId)
-      qb.andWhere("m.authorityId = :aid", { aid: q.authorityId });
     if (q.q) {
       qb.andWhere(
         new Brackets((b) => {
-          b.where("m.title ILIKE :q", { q: `%${q.q}%` }).orWhere(
-            "m.summary ILIKE :q",
-            {
-              q: `%${q.q}%`,
-            },
+          b.where("m.title LIKE :q", { q: `%${q.q}%` }).orWhere(
+            "m.summary LIKE :q",
+            { q: `%${q.q}%` },
           );
         }),
       );
@@ -129,13 +123,11 @@ mandatesRouter.get("/", async (req, res, next) => {
   }
 });
 
-// GET /api/mandates/:id
 mandatesRouter.get("/:id", async (req, res, next) => {
   try {
     const id = z.string().uuid().parse(req.params.id);
     const mandate = await AppDataSource.getRepository(Mandate).findOne({
       where: { id },
-      relations: { authority: true },
     });
     if (!mandate) {
       res.status(404).json({ error: "Mandate not found" });
@@ -181,7 +173,6 @@ mandatesRouter.get("/:id", async (req, res, next) => {
   }
 });
 
-// GET /api/mandates/:id/responses
 mandatesRouter.get("/:id/responses", async (req, res, next) => {
   try {
     const id = z.string().uuid().parse(req.params.id);
@@ -208,10 +199,6 @@ mandatesRouter.get("/:id/responses", async (req, res, next) => {
   }
 });
 
-// ---------------------------------------------------------------------
-// Institution-only writes (gated by X-Institution-Key header)
-// ---------------------------------------------------------------------
-
 const responseBodySchema = z.object({
   responderLabel: z.string().min(2).max(120),
   responseText: z.string().min(5).max(5000),
@@ -235,7 +222,6 @@ mandatesRouter.post(
         const response = await em.getRepository(InstitutionResponse).save(
           em.getRepository(InstitutionResponse).create({
             mandateId: id,
-            authorityId: mandate.authorityId ?? null,
             responderLabel: body.responderLabel,
             responseText: body.responseText,
             newStatus: body.newStatus ?? null,
@@ -245,7 +231,6 @@ mandatesRouter.post(
           }),
         );
 
-        // Optional status transition.
         if (body.newStatus && body.newStatus !== mandate.status) {
           const oldStatus = mandate.status;
           mandate.status = body.newStatus;

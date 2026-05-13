@@ -24,7 +24,7 @@ export class Citizen {
   @Column({ name: "county_hint", type: "varchar", nullable: true })
   countyHint?: string | null;
 
-  @Column({ name: "last_login_at", type: "timestamptz", nullable: true })
+  @Column({ name: "last_login_at", type: "datetime", nullable: true })
   lastLoginAt?: Date | null;
 
   @CreateDateColumn({ name: "created_at" })

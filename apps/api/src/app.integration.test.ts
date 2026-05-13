@@ -3,16 +3,16 @@ import request from "supertest";
 import type { Express } from "express";
 
 // Integration test: register → submit → tracking → mandate list.
-// Requires Postgres + migrations + authority seed. Skipped unless INTEGRATION=1.
+// Uses the SQLite file database with synchronize:true; no migration step needed.
+// Skipped unless INTEGRATION=1.
 
 const integrationEnabled = process.env.INTEGRATION === "1";
 const d = integrationEnabled ? describe : describe.skip;
 
-d("API integration (Postgres required)", () => {
+d("API integration (SQLite)", () => {
   let app: Express;
   let token: string;
   let trackingCode: string;
-  let authorityId: string;
 
   beforeAll(async () => {
     process.env.AI_PROVIDER = "mock";
@@ -20,15 +20,6 @@ d("API integration (Postgres required)", () => {
     const { createApp } = await import("./app.js");
     if (!AppDataSource.isInitialized) await AppDataSource.initialize();
     app = createApp();
-
-    // Pick any authority for the submission.
-    const { Authority } = await import("./entities/authority.entity.js");
-    const auth = await AppDataSource.getRepository(Authority).findOne({
-      where: {},
-    });
-    if (!auth)
-      throw new Error("Seed authorities before running integration tests");
-    authorityId = auth.id;
   });
 
   afterAll(async () => {
@@ -53,8 +44,8 @@ d("API integration (Postgres required)", () => {
       .send({
         originalText:
           "Water shortage in our ward for over two weeks; borehole is broken.",
-        targetAuthorityId: authorityId,
-        location: { county: "Nairobi", ward: "Mathare" },
+        scopeLevel: "ward",
+        location: { country: "Kenya", county: "Nairobi", ward: "Mathare" },
         consentToProcess: true,
       });
     expect(res.status).toBe(201);

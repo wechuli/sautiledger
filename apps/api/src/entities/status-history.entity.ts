@@ -20,7 +20,7 @@ export class StatusHistory {
   @JoinColumn({ name: "mandate_id" })
   mandate!: Mandate;
 
-  @Column({ name: "mandate_id", type: "uuid" })
+  @Column({ name: "mandate_id", type: "varchar" })
   mandateId!: string;
 
   @Column({ name: "old_status", type: "varchar", nullable: true })

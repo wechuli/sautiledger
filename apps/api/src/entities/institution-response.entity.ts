@@ -8,7 +8,6 @@ import {
   PrimaryGeneratedColumn,
 } from "typeorm";
 import type { MandateStatus } from "@sautiledger/shared";
-import { Authority } from "./authority.entity.js";
 import { Mandate } from "./mandate.entity.js";
 
 @Entity({ name: "institution_responses" })
@@ -21,18 +20,10 @@ export class InstitutionResponse {
   @JoinColumn({ name: "mandate_id" })
   mandate!: Mandate;
 
-  @Column({ name: "mandate_id", type: "uuid" })
+  @Column({ name: "mandate_id", type: "varchar" })
   mandateId!: string;
 
-  @ManyToOne(() => Authority, { nullable: true, onDelete: "SET NULL" })
-  @JoinColumn({ name: "authority_id" })
-  authority?: Authority | null;
-
-  @Column({ name: "authority_id", type: "uuid", nullable: true })
-  authorityId?: string | null;
-
-  // Free-form label for the responder (e.g., "County Water Office").
-  // Real identity stays out of the public surface in the MVP.
+  // Free-form label for the responder (e.g., "Mathare Constituency Office").
   @Column({ name: "responder_label", type: "varchar" })
   responderLabel!: string;
 
@@ -42,7 +33,7 @@ export class InstitutionResponse {
   @Column({ name: "new_status", type: "varchar", nullable: true })
   newStatus?: MandateStatus | null;
 
-  @Column({ name: "expected_resolution_date", type: "date", nullable: true })
+  @Column({ name: "expected_resolution_date", type: "datetime", nullable: true })
   expectedResolutionDate?: Date | null;
 
   @CreateDateColumn({ name: "created_at" })

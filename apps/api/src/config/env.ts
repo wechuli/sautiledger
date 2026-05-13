@@ -3,9 +3,9 @@ import "dotenv/config";
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 3000),
-  databaseUrl:
-    process.env.DATABASE_URL ??
-    "postgresql://postgres:postgres@localhost:5432/sautiledger",
+  // SQLite file path. Resolved relative to the api process cwd (repo root
+  // when run via the workspace scripts).
+  databasePath: process.env.DATABASE_PATH ?? "data/sautiledger.db",
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
   aiProvider: (process.env.AI_PROVIDER ?? "mock") as "mock" | "openai",
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",

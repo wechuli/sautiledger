@@ -1,5 +1,4 @@
 import type {
-  AuthoritySummary,
   CitizenSubmissionView,
   DashboardStats,
   InstitutionResponseView,
@@ -7,6 +6,7 @@ import type {
   MandateSummary,
   MandateCategory,
   MandateStatus,
+  ScopeLevel,
   Urgency,
 } from "@sautiledger/shared";
 
@@ -99,13 +99,11 @@ export const api = {
     });
   },
 
-  authorities(params: { level?: string; county?: string; q?: string } = {}) {
-    const qs = new URLSearchParams();
-    if (params.level) qs.set("level", params.level);
-    if (params.county) qs.set("county", params.county);
-    if (params.q) qs.set("q", params.q);
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return request<AuthoritySummary[]>(`/authorities${suffix}`);
+  authorities(_params: { level?: string; county?: string; q?: string } = {}) {
+    // Authorities table was removed in the MVP — the citizen picks a scope
+    // level (national / county / constituency / ward) instead. This stub
+    // remains only so older code paths don't crash; it returns an empty list.
+    return Promise.resolve([] as never[]);
   },
 
   submit(input: {
@@ -117,7 +115,7 @@ export const api = {
       ward?: string;
       country?: "Kenya";
     };
-    targetAuthorityId: string;
+    scopeLevel: ScopeLevel;
     consentToProcess: true;
   }) {
     return request<{
@@ -126,6 +124,7 @@ export const api = {
       mandateId: string | null;
       mandateTitle: string | null;
       mandateStatus: MandateStatus | null;
+      responsibleOffice: string;
     }>("/submissions", {
       method: "POST",
       auth: true,

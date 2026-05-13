@@ -3,6 +3,8 @@
 // Used by both apps/api (Express + TypeORM) and apps/web (React).
 // =====================================================================
 
+export * from "./kenya-geo.js";
+
 // ---------------------------------------------------------------------
 // Geographic / civic primitives
 // ---------------------------------------------------------------------
@@ -55,26 +57,51 @@ export const MANDATE_STATUSES = [
 export type MandateStatus = (typeof MANDATE_STATUSES)[number];
 
 // ---------------------------------------------------------------------
-// Authority
+// Scope level
+// Each submission and mandate is targeted at one administrative scope.
+// The actual responsible office is derived from the scope + location.
 // ---------------------------------------------------------------------
 
-export const AUTHORITY_LEVELS = [
+export const SCOPE_LEVELS = [
   "national",
   "county",
   "constituency",
   "ward",
 ] as const;
-export type AuthorityLevel = (typeof AUTHORITY_LEVELS)[number];
+export type ScopeLevel = (typeof SCOPE_LEVELS)[number];
 
-export type AuthoritySummary = {
-  id: string;
-  name: string;
-  level: AuthorityLevel;
-  county?: string | null;
-  constituency?: string | null;
-  ward?: string | null;
-  verified: boolean;
+export const SCOPE_LEVEL_LABELS: Record<ScopeLevel, string> = {
+  national: "National (Office of the President)",
+  county: "County government",
+  constituency: "Constituency office",
+  ward: "Ward administration",
 };
+
+/**
+ * Returns a human-readable label for the responsible office given a scope
+ * level and a civic location. Used for display only; no database identity.
+ */
+export function responsibleOffice(
+  level: ScopeLevel,
+  location: CivicLocation,
+): string {
+  switch (level) {
+    case "national":
+      return "Office of the President of the Republic of Kenya";
+    case "county":
+      return location.county
+        ? `${location.county} County Government`
+        : "Responsible county government";
+    case "constituency":
+      return location.constituency
+        ? `${location.constituency} Constituency Office`
+        : "Responsible constituency office";
+    case "ward":
+      return location.ward
+        ? `${location.ward} Ward Administration`
+        : "Responsible ward administration";
+  }
+}
 
 // ---------------------------------------------------------------------
 // Citizen-facing types
@@ -110,7 +137,7 @@ export type SubmissionInput = {
   originalText: string;
   languageHint?: string;
   location: CivicLocation;
-  targetAuthorityId: string;
+  scopeLevel: ScopeLevel;
   consentToProcess: boolean;
 };
 
@@ -134,7 +161,8 @@ export type CitizenSubmissionView = {
   processingStatus: SubmissionProcessingStatus;
   category?: MandateCategory | null;
   urgency?: Urgency | null;
-  targetAuthority?: AuthoritySummary | null;
+  scopeLevel: ScopeLevel;
+  responsibleOffice: string;
   mandateId?: string | null;
   mandateTitle?: string | null;
   mandateStatus?: MandateStatus | null;
@@ -175,10 +203,9 @@ export type AiProcessingResult = {
   issue_category_confidence: number;
   urgency: Urgency;
   urgency_confidence: number;
-  responsible_level: AuthorityLevel;
+  responsible_scope: ScopeLevel;
   responsible_office: string;
-  suggested_authority_id: string | null;
-  responsible_authority_confidence: number;
+  responsible_scope_confidence: number;
   summary: string;
   recommended_mandate: {
     title: string;
@@ -214,7 +241,8 @@ export type MandateSummary = {
   county?: string | null;
   constituency?: string | null;
   ward?: string | null;
-  authority?: AuthoritySummary | null;
+  scopeLevel: ScopeLevel;
+  responsibleOffice: string;
   submissionCount: number;
   evidenceStrength: number;
   firstReportedAt: string;
@@ -252,7 +280,6 @@ export type MandateDetail = MandateSummary & {
 export type DashboardStats = {
   totals: {
     mandates: number;
-    authorities: number;
     acknowledgedPct: number;
     resolvedPct: number;
   };
@@ -260,12 +287,6 @@ export type DashboardStats = {
   byUrgency: Array<{ urgency: Urgency; count: number }>;
   byStatus: Array<{ status: MandateStatus; count: number }>;
   byCounty: Array<{ county: string; count: number }>;
+  byScope: Array<{ scope: ScopeLevel; count: number }>;
   trend30d: Array<{ date: string; count: number }>;
-  topResponsiveness: Array<{
-    authority: AuthoritySummary;
-    responsivenessIndex: number;
-    assigned: number;
-    acknowledged: number;
-    resolved: number;
-  }>;
 };

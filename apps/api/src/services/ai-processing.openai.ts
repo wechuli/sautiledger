@@ -1,21 +1,22 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import {
-  AUTHORITY_LEVELS,
   MANDATE_CATEGORIES,
   MODERATION_RECOMMENDATIONS,
   SAFETY_FLAGS,
+  SCOPE_LEVELS,
   URGENCY_LEVELS,
+  responsibleOffice,
   type AiProcessingResult,
+  type MandateMatchDecision,
 } from "@sautiledger/shared";
 import { env } from "../config/env.js";
 import type { MatchInput, ProcessInput } from "./ai-processing.js";
-import type { MandateMatchDecision } from "@sautiledger/shared";
 
 // ---------------------------------------------------------------------
-// Strict Zod schema for the OpenAI response. The same schema is used to
-// (a) build the JSON Schema sent to OpenAI as `response_format`, and
-// (b) validate the parsed response before persisting.
+// Strict Zod schema mirrored as JSON Schema for OpenAI structured outputs.
+// The citizen declares the scope on submit, so we DO NOT ask the model to
+// reroute: we tell it the scope and only ask it to draft civic content.
 // ---------------------------------------------------------------------
 
 const aiResultSchema = z.object({
@@ -25,10 +26,6 @@ const aiResultSchema = z.object({
   issue_category_confidence: z.number().min(0).max(1),
   urgency: z.enum(URGENCY_LEVELS),
   urgency_confidence: z.number().min(0).max(1),
-  responsible_level: z.enum(AUTHORITY_LEVELS),
-  responsible_office: z.string(),
-  suggested_authority_id: z.string().nullable(),
-  responsible_authority_confidence: z.number().min(0).max(1),
   summary: z.string(),
   recommended_mandate: z.object({
     title: z.string(),
@@ -39,9 +36,6 @@ const aiResultSchema = z.object({
   possible_duplicate_signals: z.array(z.string()),
 });
 
-// JSON Schema mirror — OpenAI structured outputs requires explicit JSON Schema
-// with `additionalProperties: false`. We keep it adjacent to the Zod schema so
-// drift is obvious. If you change one, change the other.
 const responseSchema = {
   type: "object",
   additionalProperties: false,
@@ -52,10 +46,6 @@ const responseSchema = {
     "issue_category_confidence",
     "urgency",
     "urgency_confidence",
-    "responsible_level",
-    "responsible_office",
-    "suggested_authority_id",
-    "responsible_authority_confidence",
     "summary",
     "recommended_mandate",
     "safety_flags",
@@ -69,14 +59,6 @@ const responseSchema = {
     issue_category_confidence: { type: "number", minimum: 0, maximum: 1 },
     urgency: { type: "string", enum: [...URGENCY_LEVELS] },
     urgency_confidence: { type: "number", minimum: 0, maximum: 1 },
-    responsible_level: { type: "string", enum: [...AUTHORITY_LEVELS] },
-    responsible_office: { type: "string" },
-    suggested_authority_id: { type: ["string", "null"] },
-    responsible_authority_confidence: {
-      type: "number",
-      minimum: 0,
-      maximum: 1,
-    },
     summary: { type: "string" },
     recommended_mandate: {
       type: "object",
@@ -99,10 +81,6 @@ const responseSchema = {
   },
 } as const;
 
-// ---------------------------------------------------------------------
-// Singleton client
-// ---------------------------------------------------------------------
-
 let _client: OpenAI | null = null;
 function client(): OpenAI {
   if (!_client) {
@@ -114,10 +92,6 @@ function client(): OpenAI {
   return _client;
 }
 
-// ---------------------------------------------------------------------
-// System prompt — calm, civic tone; inferred routing; review when unsure
-// ---------------------------------------------------------------------
-
 const SYSTEM_PROMPT = `You are SautiLedger's civic-submission analyzer for Kenya.
 
 Your job is to convert a single informal citizen submission (written in English, Swahili, Sheng, or a mix) into a structured, anonymized JSON object suitable for civic accountability tracking.
@@ -127,29 +101,21 @@ Rules — follow strictly:
 - Translate "normalized_text" into calm, formal English. Keep the meaning, drop slang and emotion.
 - Choose exactly one "issue_category" from the allowed list. Use "other" only if nothing fits.
 - Choose exactly one "urgency" from low/medium/high/critical. Use "critical" only for immediate safety risk, active violence, urgent medical risk, or rapidly escalating conflict.
-- "responsible_level" and "responsible_office" are INFERRED — pick the most plausible based on category and location. If a matching authority exists in the provided list, set "suggested_authority_id" to its id; otherwise set it to null.
-- Confidence scores are 0..1 floats reflecting how certain you are. Lower them when the text is ambiguous, short, or mixes multiple issues.
-- "recommended_mandate.title" is a short formal civic title (max ~80 chars). "recommended_mandate.body" is one short paragraph describing what the responsible office should do, written in calm civic English.
+- The citizen has already declared the administrative scope (national / county / constituency / ward) and the responsible office. Do NOT contradict their routing; draft civic content that addresses that office directly.
+- "recommended_mandate.title" is a short formal civic title (max ~80 chars). "recommended_mandate.body" is several short paragraphs describing the concern, the responsible office, what the office is being asked to do, and the expected response window.
 - Add "safety_flags" for any of: personal data, exact location, mention of a child, threats, violence, named private persons, sensitive evidence, possible incitement, possible spam.
 - Set "moderation_recommendation" to:
   - "publish" only if clearly safe to aggregate publicly,
   - "publish_after_review" by default,
   - "hold_for_review" when sensitive,
   - "reject" only for clear spam/abuse.
-- "possible_duplicate_signals" are 2-5 short phrases describing the underlying concern, useful for matching similar submissions (e.g., ["non-functional borehole", "water shortage", "delayed county response"]).
+- "possible_duplicate_signals" are 2-5 short phrases describing the underlying concern, useful for matching similar submissions.
 - Avoid partisan framing. Never name political actors as responsible.
 `;
 
 function buildUserPrompt(input: ProcessInput): string {
-  const loc = input.location ?? {};
-  const authoritiesContext = input.availableAuthorities
-    .slice(0, 60) // bound token usage
-    .map(
-      (a) =>
-        `- id=${a.id} | ${a.name} | level=${a.level}${a.county ? ` | county=${a.county}` : ""}${a.ward ? ` | ward=${a.ward}` : ""}`,
-    )
-    .join("\n");
-
+  const loc = input.location ?? { country: "Kenya" };
+  const office = responsibleOffice(input.scopeLevel, loc);
   return `Submission:
 """
 ${input.originalText}
@@ -162,15 +128,11 @@ Location:
 - constituency: ${loc.constituency ?? "(unknown)"}
 - ward: ${loc.ward ?? "(unknown)"}
 
-Available authorities (pick suggested_authority_id from this list when plausible, else null):
-${authoritiesContext || "(none provided)"}
+Citizen-declared scope: ${input.scopeLevel}
+Responsible office (derived): ${office}
 
 Return JSON matching the required schema.`;
 }
-
-// ---------------------------------------------------------------------
-// Entry point
-// ---------------------------------------------------------------------
 
 export async function processSubmissionWithOpenAi(
   input: ProcessInput,
@@ -213,24 +175,17 @@ export async function processSubmissionWithOpenAi(
     );
   }
 
-  // If the model invented an authority id not in the provided list, drop it.
-  const validIds = new Set(input.availableAuthorities.map((a) => a.id));
-  const suggested_authority_id =
-    validated.data.suggested_authority_id &&
-    validIds.has(validated.data.suggested_authority_id)
-      ? validated.data.suggested_authority_id
-      : null;
-
   return {
     ...validated.data,
-    suggested_authority_id,
+    responsible_scope: input.scopeLevel,
+    responsible_office: responsibleOffice(input.scopeLevel, input.location),
+    responsible_scope_confidence: 0.95,
     generated: true,
   };
 }
 
 // ---------------------------------------------------------------------
-// Clustering matcher — ask the model whether a new submission belongs to
-// any existing mandate. Returns null when no candidate is a good match.
+// Clustering matcher — unchanged structurally, but no authority context.
 // ---------------------------------------------------------------------
 
 const matchSchema = z.object({
@@ -253,7 +208,7 @@ const matchJsonSchema = {
 const MATCH_SYSTEM_PROMPT = `You decide whether a new civic submission describes the same underlying community concern as one of a small list of existing Community Mandates.
 
 Rules:
-- Match only when the submissions describe the SAME concrete concern in the SAME location context (e.g., the same broken borehole, the same closed dispensary, the same impassable road).
+- Match only when the submissions describe the SAME concrete concern in the SAME location context.
 - Do not match merely because the category is the same.
 - If no candidate is a clear match, return matched_mandate_id=null with a low confidence.
 - confidence is a 0..1 float. Use >=0.7 only when you are clearly confident.
@@ -272,7 +227,7 @@ export async function matchSubmissionToMandateWithOpenAi(
   const user = `New submission category: ${input.submissionCategory}
 New submission summary: ${input.submissionSummary}
 
-Existing candidate mandates (same category and location bucket):
+Existing candidate mandates:
 ${candidatesText}
 
 Return JSON matching the required schema. If matched_mandate_id is non-null, it MUST be one of the candidate ids listed above.`;
@@ -317,3 +272,6 @@ Return JSON matching the required schema. If matched_mandate_id is non-null, it 
     reason: parsed.data.reason,
   };
 }
+
+// Silence unused-import warnings when only types are used at runtime.
+export const __SCOPE_LEVELS_RUNTIME = SCOPE_LEVELS;

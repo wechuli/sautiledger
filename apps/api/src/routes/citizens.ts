@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { responsibleOffice } from "@sautiledger/shared";
 import { AppDataSource } from "../data-source.js";
 import { Submission } from "../entities/submission.entity.js";
 import { Citizen } from "../entities/citizen.entity.js";
@@ -91,7 +92,7 @@ citizensRouter.get(
       const repo = AppDataSource.getRepository(Submission);
       const submissions = await repo.find({
         where: { citizenId: req.citizenId },
-        relations: { mandate: true, targetAuthority: true },
+        relations: { mandate: true },
         order: { createdAt: "DESC" },
       });
 
@@ -102,17 +103,11 @@ citizensRouter.get(
           processingStatus: s.processingStatus,
           category: s.category ?? null,
           urgency: s.urgency ?? null,
-          targetAuthority: s.targetAuthority
-            ? {
-                id: s.targetAuthority.id,
-                name: s.targetAuthority.name,
-                level: s.targetAuthority.level,
-                county: s.targetAuthority.county ?? null,
-                constituency: s.targetAuthority.constituency ?? null,
-                ward: s.targetAuthority.ward ?? null,
-                verified: s.targetAuthority.verified,
-              }
-            : null,
+          scopeLevel: s.scopeLevel,
+          responsibleOffice: responsibleOffice(
+            s.scopeLevel,
+            s.location ?? { country: "Kenya" },
+          ),
           mandateId: s.mandateId ?? null,
           mandateTitle: s.mandate?.title ?? null,
           mandateStatus: s.mandate?.status ?? null,

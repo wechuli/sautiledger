@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import bcrypt from "bcrypt";
+import { responsibleOffice, type ScopeLevel } from "@sautiledger/shared";
 import { AppDataSource } from "../data-source.js";
-import { Authority } from "../entities/authority.entity.js";
 import { Citizen } from "../entities/citizen.entity.js";
 import { InstitutionResponse } from "../entities/institution-response.entity.js";
 import { Mandate } from "../entities/mandate.entity.js";
@@ -25,7 +25,7 @@ type DemoMandate = {
   category: Mandate["category"];
   urgency: Mandate["urgency"];
   status: Mandate["status"];
-  authorityName: string;
+  scopeLevel: ScopeLevel;
   county: string;
   constituency?: string;
   ward?: string;
@@ -42,24 +42,24 @@ const DEMO_PASSWORD = "demo-password-123";
 
 const demoMandates: DemoMandate[] = [
   {
-    title: "Restore reliable water access in Mathare ward",
+    title: "Restore reliable water access in Mabatini ward",
     summary:
-      "Residents report a non-functional borehole and delayed county response affecting daily water access in Mathare.",
+      "Residents report a non-functional borehole and delayed county response affecting daily water access in Mabatini, Mathare.",
     formalMandateText: [
-      "Community Mandate: Restore reliable water access in Mathare ward.",
-      "Location: Mathare ward, Mathare constituency, Nairobi County. Issue area: water access. Urgency: high.",
-      "Background: Residents of Mathare ward report that the community borehole has been non-functional for several weeks. Households, schools, and small businesses are without a dependable water source, and previous calls to the area chief and county office have not produced a documented response. The disruption is affecting hygiene, food preparation, and the daily routines of women and children who are walking long distances to fetch water.",
-      "Responsible body: Nairobi County Water Department, supported by the Mathare ward administrator. The community requests that this office publish (i) an inspection report on the borehole within seven days, (ii) a restoration plan with timelines for repair or alternative supply within fourteen days, and (iii) a maintenance schedule that prevents repeat outages.",
-      "Expected response: The concern has persisted long enough to affect daily life across the community. A formal acknowledgement is requested within one week and an initial response within two weeks.",
-      "This mandate aggregates anonymized community submissions reporting the same concern. Individual submitters are not identified. The mandate is intended for review, editing, and public response by accountable institutions.",
+      "Community Mandate: Restore reliable water access in Mabatini ward.",
+      "Location: Mabatini ward, Mathare constituency, Nairobi County. Scope: county. Urgency: high.",
+      "Background: Residents of Mabatini ward report that the community borehole has been non-functional for several weeks. Households, schools, and small businesses are without a dependable water source, and previous calls to the area chief and county office have not produced a documented response.",
+      "Responsible body: Nairobi County Government. The community requests (i) an inspection report on the borehole within seven days, (ii) a restoration plan with timelines for repair or alternative supply within fourteen days, and (iii) a maintenance schedule that prevents repeat outages.",
+      "Expected response: The concern has persisted long enough to affect daily life. A formal acknowledgement is requested within one week and an initial response within two weeks.",
+      "This mandate aggregates anonymized community submissions. Individual submitters are not identified.",
     ].join("\n\n"),
     category: "water",
     urgency: "high",
     status: "acknowledged",
-    authorityName: "Nairobi County Water Department",
+    scopeLevel: "county",
     county: "Nairobi",
     constituency: "Mathare",
-    ward: "Mathare",
+    ward: "Mabatini",
     submissions: [
       {
         phone: DEMO_PHONES[0],
@@ -76,7 +76,7 @@ const demoMandates: DemoMandate[] = [
     ],
     responses: [
       {
-        responderLabel: "Nairobi County Water Office",
+        responderLabel: "Nairobi County Water and Sanitation Office",
         responseText:
           "We have received the reports and dispatched a technical team to inspect the borehole this week. We will share a restoration timeline by Friday.",
         newStatus: "acknowledged",
@@ -84,39 +84,39 @@ const demoMandates: DemoMandate[] = [
     ],
   },
   {
-    title: "Restock dispensary medicine in Kondele ward",
+    title: "Restore reliable water supply in Township (Kiambu) ward",
     summary:
-      "Residents report the local dispensary has been without basic medicines for several weeks.",
+      "Residents of Kiambu Township report extended water rationing and unreliable kiosks affecting households and small traders.",
     formalMandateText: [
-      "Community Mandate: Restock essential medicines at Kondele ward dispensary.",
-      "Location: Kondele ward, Kisumu Central constituency, Kisumu County. Issue area: health services. Urgency: high.",
-      "Background: Residents report that the Kondele dispensary has been without basic medicines for an extended period. Families are travelling further or paying private providers for treatments that should be available at the dispensary, and parents with young children are reporting deteriorating outcomes for routine illnesses. The stock-out points to a supply chain breakdown rather than a one-off event.",
-      "Responsible body: Kisumu County Department of Health, in coordination with KEMSA and the Kondele ward administrator. The community requests (i) an audit of the dispensary's current stock and ordering history within seven days, (ii) an emergency restock of essential medicines within fourteen days, and (iii) a public statement on the supply chain gap and the measures that will prevent recurrence within twenty-one days.",
-      "Expected response: The concern has persisted long enough to affect daily life across the community. A formal acknowledgement is requested within one week and an initial response within two weeks.",
-      "This mandate aggregates anonymized community submissions reporting the same concern. Individual submitters are not identified. The mandate is intended for review, editing, and public response by accountable institutions.",
+      "Community Mandate: Restore reliable water supply in Township (Kiambu) ward.",
+      "Location: Township (Kiambu) ward, Kiambu constituency, Kiambu County. Scope: county. Urgency: high.",
+      "Background: Households and small businesses in Kiambu Township report intermittent piped water for several weeks; community water kiosks are frequently dry. Residents are buying water from informal vendors at inflated rates.",
+      "Responsible body: Kiambu County Government. The community requests (i) a public statement on the cause of the rationing within seven days, (ii) a published restoration schedule with named officers within fourteen days, and (iii) interim water bowser support for affected sub-locations until piped supply is restored.",
+      "Expected response: A formal acknowledgement is requested within one week and an initial response within two weeks.",
+      "This mandate aggregates anonymized community submissions. Individual submitters are not identified.",
     ].join("\n\n"),
-    category: "health",
+    category: "water",
     urgency: "high",
     status: "in_progress",
-    authorityName: "Kisumu County Water Department", // intentional fallback to a county-level entry; will be replaced if better one exists
-    county: "Kisumu",
-    constituency: "Kisumu Central",
-    ward: "Kondele",
+    scopeLevel: "county",
+    county: "Kiambu",
+    constituency: "Kiambu",
+    ward: "Township (Kiambu)",
     submissions: [
       {
         phone: DEMO_PHONES[0],
-        text: "The dispensary has had no medicine for two months. We have to travel to town for basic painkillers.",
+        text: "Maji haijatoka kwa pipe for three weeks. Tunalipa mavendor pesa mingi sana.",
       },
       {
         phone: DEMO_PHONES[1],
-        text: "Dispensary yetu haina dawa kabisa. Watoto wanaumwa na tunaambiwa tununue private.",
+        text: "Our water kiosk in Kiambu Township has been dry. Children are getting sick from buying water elsewhere.",
       },
     ],
     responses: [
       {
-        responderLabel: "Kisumu County Health Office",
+        responderLabel: "Kiambu County Water Office",
         responseText:
-          "We are aware of the stockouts and are coordinating with KEMSA. A first restock is expected within 10 days.",
+          "We acknowledge the rationing and have begun assessing the supply line. A bowser schedule will be published this week.",
         newStatus: "in_progress",
       },
     ],
@@ -127,19 +127,19 @@ const demoMandates: DemoMandate[] = [
       "Heavy rains have damaged the ward road, blocking ambulances and stranding residents.",
     formalMandateText: [
       "Community Mandate: Repair impassable ward road in Kibra.",
-      "Location: Kibra constituency, Nairobi County. Issue area: road infrastructure. Urgency: critical.",
-      "Background: Recent heavy rains have damaged sections of the ward road serving the community. The road is currently impassable to ambulances and to vehicles transporting goods, and residents are reporting that medical emergencies and school transport have already been disrupted. Without urgent intervention, the community remains exposed to a preventable safety risk.",
-      "Responsible body: Kibra Constituency Office and the Nairobi County Roads and Public Works department. The community requests (i) emergency grading and patching of the most damaged sections within seventy-two hours, (ii) a published repair schedule with named contractors and supervising officers within fourteen days, and (iii) a follow-up assessment after the next rainy period to confirm durability.",
-      "Expected response: Residents describe an immediate risk to life, livelihoods, or essential services. This mandate requires urgent acknowledgement within forty-eight hours and a documented response plan within one week.",
-      "This mandate aggregates anonymized community submissions reporting the same concern. Individual submitters are not identified. The mandate is intended for review, editing, and public response by accountable institutions.",
+      "Location: Laini Saba ward, Kibra constituency, Nairobi County. Scope: constituency. Urgency: critical.",
+      "Background: Recent heavy rains have damaged sections of the ward road serving the community. The road is currently impassable to ambulances and to vehicles transporting goods. Residents report disrupted medical emergencies and school transport.",
+      "Responsible body: Kibra Constituency Office. The community requests (i) emergency grading and patching of the most damaged sections within seventy-two hours, (ii) a published repair schedule with named contractors within fourteen days, and (iii) a follow-up assessment after the next rainy period.",
+      "Expected response: Residents describe an immediate risk to life and essential services. This mandate requires urgent acknowledgement within forty-eight hours and a documented response plan within one week.",
+      "This mandate aggregates anonymized community submissions. Individual submitters are not identified.",
     ].join("\n\n"),
     category: "roads",
     urgency: "critical",
     status: "new",
-    authorityName: "Kibra Constituency Office",
+    scopeLevel: "constituency",
     county: "Nairobi",
     constituency: "Kibra",
-    ward: undefined,
+    ward: "Laini Saba",
     submissions: [
       {
         phone: DEMO_PHONES[2],
@@ -164,7 +164,6 @@ async function ensureCitizen(phone: string): Promise<Citizen> {
 async function run() {
   await AppDataSource.initialize();
 
-  const authorityRepo = AppDataSource.getRepository(Authority);
   const mandateRepo = AppDataSource.getRepository(Mandate);
   const submissionRepo = AppDataSource.getRepository(Submission);
   const responseRepo = AppDataSource.getRepository(InstitutionResponse);
@@ -175,31 +174,51 @@ async function run() {
   let createdResponses = 0;
 
   for (const demo of demoMandates) {
+    const loc = {
+      country: "Kenya" as const,
+      county: demo.county,
+      constituency: demo.constituency,
+      ward: demo.ward,
+    };
+    const office = responsibleOffice(demo.scopeLevel, loc);
+
     const existing = await mandateRepo.findOne({
       where: { title: demo.title },
     });
     if (existing) {
-      // Keep the demo seed idempotent but refresh the drafted text so
-      // demo databases pick up improvements to the seed copy.
-      if (
-        existing.formalMandateText !== demo.formalMandateText ||
-        existing.summary !== demo.summary
-      ) {
+      let changed = false;
+      if (existing.formalMandateText !== demo.formalMandateText) {
         existing.formalMandateText = demo.formalMandateText;
-        existing.summary = demo.summary;
-        await mandateRepo.save(existing);
-        console.log(`Refreshed mandate copy: ${demo.title}`);
+        changed = true;
       }
-      continue;
-    }
-
-    const authority = await authorityRepo.findOne({
-      where: { name: demo.authorityName },
-    });
-    if (!authority) {
-      console.warn(
-        `Skipping mandate "${demo.title}": authority not found (run authority seed first).`,
-      );
+      if (existing.summary !== demo.summary) {
+        existing.summary = demo.summary;
+        changed = true;
+      }
+      if (existing.scopeLevel !== demo.scopeLevel) {
+        existing.scopeLevel = demo.scopeLevel;
+        changed = true;
+      }
+      if (existing.responsibleOffice !== office) {
+        existing.responsibleOffice = office;
+        changed = true;
+      }
+      if (existing.county !== demo.county) {
+        existing.county = demo.county;
+        changed = true;
+      }
+      if ((existing.constituency ?? null) !== (demo.constituency ?? null)) {
+        existing.constituency = demo.constituency ?? null;
+        changed = true;
+      }
+      if ((existing.ward ?? null) !== (demo.ward ?? null)) {
+        existing.ward = demo.ward ?? null;
+        changed = true;
+      }
+      if (changed) {
+        await mandateRepo.save(existing);
+        console.log(`Refreshed mandate: ${demo.title}`);
+      }
       continue;
     }
 
@@ -212,7 +231,8 @@ async function run() {
         category: demo.category,
         urgency: demo.urgency,
         status: demo.status,
-        authorityId: authority.id,
+        scopeLevel: demo.scopeLevel,
+        responsibleOffice: office,
         county: demo.county,
         constituency: demo.constituency ?? null,
         ward: demo.ward ?? null,
@@ -243,61 +263,53 @@ async function run() {
       }),
     );
 
-    // Submissions
     for (const sub of demo.submissions) {
       const citizen = await ensureCitizen(sub.phone);
       await submissionRepo.save(
         submissionRepo.create({
           trackingCode: createTrackingCode(),
           citizenId: citizen.id,
-          targetAuthorityId: authority.id,
           mandateId: mandate.id,
+          scopeLevel: demo.scopeLevel,
           originalText: sub.text,
           normalizedText: sub.text,
           detectedLanguage: "mixed",
           category: demo.category,
           urgency: demo.urgency,
           processingStatus: "processed",
-          location: {
-            country: "Kenya",
-            county: demo.county,
-            constituency: demo.constituency,
-            ward: demo.ward,
-          },
+          location: loc,
           aiResult: null,
         }),
       );
       createdSubmissions += 1;
     }
 
-    // Responses + status transitions
-    for (const r of demo.responses) {
+    for (const resp of demo.responses) {
       await responseRepo.save(
         responseRepo.create({
           mandateId: mandate.id,
-          authorityId: authority.id,
-          responderLabel: r.responderLabel,
-          responseText: r.responseText,
-          newStatus: r.newStatus ?? null,
+          responderLabel: resp.responderLabel,
+          responseText: resp.responseText,
+          newStatus: resp.newStatus ?? null,
         }),
       );
-      createdResponses += 1;
-      if (r.newStatus && r.newStatus !== "new") {
+      if (resp.newStatus && resp.newStatus !== "new") {
         await historyRepo.save(
           historyRepo.create({
             mandateId: mandate.id,
             oldStatus: "new",
-            newStatus: r.newStatus,
-            changedByLabel: r.responderLabel,
-            note: "Status set via demo response",
+            newStatus: resp.newStatus,
+            changedByLabel: resp.responderLabel,
+            note: "Status updated via demo response",
           }),
         );
       }
+      createdResponses += 1;
     }
   }
 
   console.log(
-    `Demo seed complete: ${createdMandates} mandates, ${createdSubmissions} submissions, ${createdResponses} responses.`,
+    `Seed complete. Mandates created: ${createdMandates}, submissions: ${createdSubmissions}, responses: ${createdResponses}.`,
   );
   await AppDataSource.destroy();
 }

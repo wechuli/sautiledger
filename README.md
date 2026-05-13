@@ -17,16 +17,25 @@ AI coding agents should start with:
 
 ## MVP Direction
 
-The MVP is Kenya-focused and will likely use:
+The MVP is Kenya-focused and uses:
 
 - Vite, React, TypeScript, shadcn/ui, lucide-react, and Recharts for the frontend.
 - Express.js, TypeScript, and TypeORM for the backend.
-- PostgreSQL for persistence.
-- Docker Compose for local app + database development.
+- **SQLite (file-based)** for persistence — zero ops, perfect for the demo. The DB lives at `apps/api/data/sautiledger.db` and the schema is auto-created via TypeORM `synchronize: true`.
+- Docker Compose for a single-container local run.
 - Kubernetes for deployment.
-- OpenAI APIs for language detection, translation, classification, summarization, mandate generation, and duplicate support.
+- OpenAI APIs for language detection, translation, classification, summarization, and mandate generation.
 
-The React frontend should be served by the Express app in production-like runs. The first build should keep the full demo path simple: submit concern, process with mock AI, create or update a Community Mandate, show it on a graph-rich public dashboard, and allow an institution response. SMS integration is out of scope for the MVP.
+There is no separate "Authority" table in the MVP. When citizens submit a concern, they pick the responsible scope themselves:
+
+- **National** — Office of the President
+- **County** — the relevant county government
+- **Constituency** — the relevant constituency office
+- **Ward** — the relevant ward administration
+
+The responsible office string is derived from the chosen scope plus the citizen's location.
+
+The React frontend is served by the Express app in production-like runs.
 
 ## Environment
 
@@ -35,9 +44,9 @@ Copy `.env.example` when app scaffolding exists and fill in local values. Do not
 ## Repository Layout
 
 - `apps/web`: Vite + React + TypeScript frontend.
-- `apps/api`: Express + TypeScript REST API with TypeORM wiring.
+- `apps/api`: Express + TypeScript REST API with TypeORM wiring (SQLite).
 - `packages/shared`: shared domain types used by the API and frontend.
-- `docker-compose.yml`: local production-like app and PostgreSQL stack.
+- `docker-compose.yml`: single-container production-like app stack.
 
 ## Local Development
 
@@ -59,7 +68,7 @@ Key variables:
 
 | Variable                          | Purpose                                                               |
 | --------------------------------- | --------------------------------------------------------------------- |
-| `DATABASE_URL`                    | Postgres connection string (defaults to the Compose db).              |
+| `DATABASE_PATH`                   | Path to the SQLite file (default `data/sautiledger.db`).              |
 | `AI_PROVIDER`                     | `mock` for offline demos, `openai` for real LLM calls.                |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | Required only when `AI_PROVIDER=openai`.                              |
 | `SUBMISSION_HASH_SALT`            | Server-side salt for SHA-256 hashing of phone numbers.                |
@@ -69,23 +78,15 @@ Key variables:
 
 Do not commit real secrets.
 
-### 3. Start PostgreSQL
+### 3. Seed demo data
 
 ```bash
-docker compose up -d db
-```
-
-### 4. Run migrations and seed data
-
-```bash
-npm run migration:run --workspace @sautiledger/api
-npm run seed --workspace @sautiledger/api        # base authority + reference data
 npm run seed:demo --workspace @sautiledger/api   # 3 demo citizens + 3 demo mandates
 ```
 
-The demo seed is idempotent — safe to re-run.
+The SQLite file and parent directory are created automatically on first run. The demo seed is idempotent — safe to re-run.
 
-### 5. Run the API and frontend
+### 4. Run the API and frontend
 
 In two terminals:
 
@@ -99,7 +100,7 @@ npm run dev:web
 
 The Vite dev server proxies `/api` requests to the API.
 
-### 6. Demo credentials
+### 5. Demo credentials
 
 | Role      | Phone           | Password            |
 | --------- | --------------- | ------------------- |
@@ -110,7 +111,7 @@ The Vite dev server proxies `/api` requests to the API.
 To use the institution console at `/institution`, paste the value of
 `INSTITUTION_DEMO_KEY` from your `.env` (default: `demo-institution-key`).
 
-### 7. Production-like container stack
+### 6. Production-like container stack
 
 ```bash
 docker compose up --build
@@ -142,7 +143,7 @@ Both processing (`processSubmissionWithAi`) and clustering (`matchSubmissionToMa
 
 ```bash
 npm run test --workspace @sautiledger/api          # unit tests (mock AI, no DB)
-INTEGRATION=1 npm run test --workspace @sautiledger/api  # adds register→submit→track integration tests (needs Postgres + migrations)
+INTEGRATION=1 npm run test --workspace @sautiledger/api  # adds register→submit→track integration tests (uses the SQLite file DB)
 ```
 
 ## Privacy Notes

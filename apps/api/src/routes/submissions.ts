@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
+import {
+  SCOPE_LEVELS,
+  responsibleOffice,
+} from "@sautiledger/shared";
 import { AppDataSource } from "../data-source.js";
-import { Authority } from "../entities/authority.entity.js";
 import { Mandate } from "../entities/mandate.entity.js";
 import { Submission } from "../entities/submission.entity.js";
 import { processSubmissionWithAi } from "../services/ai-processing.js";
@@ -18,14 +21,12 @@ const submissionSchema = z.object({
     constituency: z.string().optional(),
     ward: z.string().optional(),
   }),
-  targetAuthorityId: z.string().uuid(),
+  scopeLevel: z.enum(SCOPE_LEVELS),
   consentToProcess: z.literal(true),
 });
 
 export const submissionsRouter = Router();
 
-// Submissions require an authenticated citizen. citizenId is derived from
-// the JWT, never from the request body.
 submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
   try {
     const input = submissionSchema.parse(req.body);
@@ -36,7 +37,6 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
       return;
     }
 
-    const authorities = await AppDataSource.getRepository(Authority).find();
     let aiResult: Awaited<ReturnType<typeof processSubmissionWithAi>> | null =
       null;
     let processingStatus: "processed" | "failed" = "processed";
@@ -45,15 +45,7 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
         originalText: input.originalText,
         languageHint: input.languageHint,
         location: input.location,
-        availableAuthorities: authorities.map((a) => ({
-          id: a.id,
-          name: a.name,
-          level: a.level,
-          county: a.county,
-          constituency: a.constituency,
-          ward: a.ward,
-          verified: a.verified,
-        })),
+        scopeLevel: input.scopeLevel,
       });
     } catch (aiErr) {
       console.error("AI processing failed:", aiErr);
@@ -64,7 +56,7 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
     const submission = repository.create({
       trackingCode,
       citizenId: req.citizenId ?? null,
-      targetAuthorityId: input.targetAuthorityId,
+      scopeLevel: input.scopeLevel,
       originalText: input.originalText,
       normalizedText: aiResult?.normalized_text ?? null,
       detectedLanguage: aiResult?.detected_language ?? null,
@@ -75,7 +67,6 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
       aiResult,
     });
 
-    // Persist + cluster atomically.
     let mandateTitle: string | null = null;
     let mandateStatus: string | null = null;
     const saved = await AppDataSource.transaction(async (em) => {
@@ -99,7 +90,6 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
           mandateStatus = mandate?.status ?? null;
         } catch (clusterErr) {
           console.error("Mandate clustering failed:", clusterErr);
-          // Submission is still saved; mandate stays unlinked for retry.
         }
       }
 
@@ -112,6 +102,7 @@ submissionsRouter.post("/", requireCitizen, async (req, res, next) => {
       mandateId: saved.mandateId ?? null,
       mandateTitle,
       mandateStatus,
+      responsibleOffice: responsibleOffice(input.scopeLevel, input.location),
     });
   } catch (error) {
     next(error);

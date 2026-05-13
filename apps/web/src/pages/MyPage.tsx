@@ -75,12 +75,9 @@ export function MyPage() {
                     </Link>
                   </p>
                 )}
-                {s.targetAuthority && (
-                  <p className="text-xs text-muted-foreground">
-                    Routed to {s.targetAuthority.name} (
-                    {s.targetAuthority.level})
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  Routed to {s.responsibleOffice} ({s.scopeLevel})
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {new Date(s.createdAt).toLocaleString()}
                 </p>

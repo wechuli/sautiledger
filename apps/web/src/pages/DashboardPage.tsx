@@ -17,7 +17,7 @@ import {
 import {
   AlertTriangle,
   CheckCircle2,
-  Landmark,
+  Layers,
   ListChecks,
 } from "lucide-react";
 import type { DashboardStats } from "@sautiledger/shared";
@@ -91,9 +91,9 @@ export function DashboardPage() {
               value={String(stats.totals.mandates)}
             />
             <Metric
-              icon={<Landmark />}
-              label="Authorities"
-              value={String(stats.totals.authorities)}
+              icon={<Layers />}
+              label="Scopes covered"
+              value={String(stats.byScope.length)}
             />
             <Metric
               icon={<CheckCircle2 />}
@@ -197,47 +197,22 @@ export function DashboardPage() {
             </Card>
           </section>
 
-          {stats.topResponsiveness.length > 0 && (
+          {stats.byScope.length > 0 && (
             <Card>
               <CardHeader
-                title="Top responsiveness"
-                subtitle="Acknowledgement, resolution, and response speed — not a partisan ranking."
+                title="Mandates by scope"
+                subtitle="Which level of government is being asked to respond."
               />
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-muted-foreground">
-                    <tr className="border-b border-border">
-                      <th className="py-2">Authority</th>
-                      <th className="py-2">Mandates</th>
-                      <th className="py-2">Acknowledged</th>
-                      <th className="py-2">Resolved</th>
-                      <th className="py-2">Index</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.topResponsiveness.map((row) => (
-                      <tr
-                        key={row.authority.id}
-                        className="border-b border-border last:border-0"
-                      >
-                        <td className="py-2 font-medium">
-                          {row.authority.name}
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            {row.authority.level}
-                          </span>
-                        </td>
-                        <td className="py-2">{row.assigned}</td>
-                        <td className="py-2">{row.acknowledged}</td>
-                        <td className="py-2">{row.resolved}</td>
-                        <td className="py-2">
-                          <Badge tone="primary">
-                            {row.responsivenessIndex.toFixed(2)}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="h-56">
+                <ResponsiveContainer>
+                  <BarChart data={stats.byScope}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="scope" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#16806f" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </Card>
           )}

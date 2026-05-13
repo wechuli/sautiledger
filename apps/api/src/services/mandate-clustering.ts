@@ -1,14 +1,13 @@
 import { MoreThanOrEqual, Not, In } from "typeorm";
 import type { EntityManager } from "typeorm";
-import type { AiProcessingResult } from "@sautiledger/shared";
+import {
+  responsibleOffice,
+  type AiProcessingResult,
+} from "@sautiledger/shared";
 import { Mandate } from "../entities/mandate.entity.js";
 import { StatusHistory } from "../entities/status-history.entity.js";
 import { Submission } from "../entities/submission.entity.js";
 import { matchSubmissionToMandate } from "./ai-processing.js";
-
-// ---------------------------------------------------------------------
-// Clustering thresholds and windows
-// ---------------------------------------------------------------------
 
 const MATCH_CONFIDENCE_THRESHOLD = 0.7;
 const CANDIDATE_LOOKBACK_DAYS = 60;
@@ -22,13 +21,6 @@ export type ClusteringOutcome = {
   reason: string;
 };
 
-/**
- * Find an existing Mandate that matches this submission, or create a new one.
- * Mutates the submission's mandateId and persists mandate stats.
- *
- * MUST be called inside a TypeORM transaction so submissionCount / lastActivityAt
- * stay consistent under concurrent submissions.
- */
 export async function findOrCreateMandateForSubmission(
   em: EntityManager,
   submission: Submission,
@@ -37,8 +29,6 @@ export async function findOrCreateMandateForSubmission(
   const mandateRepo = em.getRepository(Mandate);
   const historyRepo = em.getRepository(StatusHistory);
 
-  // Deterministic prefilter: same category, same coarse location, not resolved,
-  // active within the lookback window.
   const since = new Date(
     Date.now() - CANDIDATE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000,
   );
@@ -48,7 +38,7 @@ export async function findOrCreateMandateForSubmission(
       category: ai.issue_category,
       status: Not(In([...RESOLVED_STATUSES])),
       lastActivityAt: MoreThanOrEqual(since),
-      // Filter by ward when known, else fall back to county.
+      scopeLevel: submission.scopeLevel,
       ...(loc.ward
         ? { ward: loc.ward }
         : loc.county
@@ -107,8 +97,6 @@ async function joinExistingMandate(
     confidence,
   );
 
-  // Bump urgency if the new submission is more urgent.
-  // (Stored urgency on Submission is set by the caller after AI.)
   if (rankUrgency(submission.urgency) > rankUrgency(mandate.urgency)) {
     mandate.urgency = submission.urgency!;
   }
@@ -134,6 +122,7 @@ async function createNewMandate(
 
   const now = new Date();
   const loc = submission.location ?? {};
+  const office = responsibleOffice(submission.scopeLevel, loc);
   const mandate = mandateRepo.create({
     title: ai.recommended_mandate.title,
     summary: ai.summary,
@@ -141,8 +130,8 @@ async function createNewMandate(
     category: ai.issue_category,
     urgency: ai.urgency,
     status: "new",
-    authorityId:
-      submission.targetAuthorityId ?? ai.suggested_authority_id ?? null,
+    scopeLevel: submission.scopeLevel,
+    responsibleOffice: office,
     county: loc.county ?? null,
     constituency: loc.constituency ?? null,
     ward: loc.ward ?? null,
@@ -173,10 +162,6 @@ async function createNewMandate(
   };
 }
 
-// ---------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------
-
 function rankUrgency(u: string | null | undefined): number {
   switch (u) {
     case "critical":
@@ -192,11 +177,6 @@ function rankUrgency(u: string | null | undefined): number {
   }
 }
 
-/**
- * Evidence strength is a 0..1 score that grows with the number of
- * corroborating submissions and the confidence we have in the category.
- * Log-scaled so 1 submission ≈ 0, 10 ≈ ~0.7, 100 ≈ ~0.9.
- */
 function computeEvidenceStrength(count: number, confidence: number): number {
   const countFactor = Math.min(1, Math.log10(Math.max(1, count)) / 2);
   const confFactor = Math.max(0, Math.min(1, confidence));

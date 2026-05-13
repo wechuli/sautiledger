@@ -7,7 +7,6 @@ import { pinoHttp } from "pino-http";
 import { ZodError } from "zod";
 import { env } from "./config/env.js";
 import { logger } from "./logger.js";
-import { authoritiesRouter } from "./routes/authorities.js";
 import { citizensRouter } from "./routes/citizens.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { healthRouter } from "./routes/health.js";
@@ -26,7 +25,6 @@ export function createApp() {
   app.use(
     pinoHttp({
       logger,
-      // Drop the noisy default `req`/`res` serializers for static asset paths.
       autoLogging: {
         ignore: (req: { url?: string }) =>
           req.url?.startsWith("/assets/") ?? false,
@@ -36,7 +34,6 @@ export function createApp() {
 
   app.use("/api/health", healthRouter);
   app.use("/api/citizens", citizensRouter);
-  app.use("/api/authorities", authoritiesRouter);
   app.use("/api/submissions", submissionsRouter);
   app.use("/api/mandates", mandatesRouter);
   app.use("/api/tracking", trackingRouter);

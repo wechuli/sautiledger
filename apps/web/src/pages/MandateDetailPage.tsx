@@ -67,8 +67,8 @@ export function MandateDetailPage() {
             value={mandate.evidenceStrength.toFixed(2)}
           />
           <Stat
-            label="Authority"
-            value={mandate.authority?.name ?? "Unassigned"}
+            label={`Responsible (${mandate.scopeLevel})`}
+            value={mandate.responsibleOffice}
           />
         </div>
 

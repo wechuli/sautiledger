@@ -3,17 +3,15 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
 import type {
   MandateCategory,
   MandateStatus,
+  ScopeLevel,
   Urgency,
 } from "@sautiledger/shared";
-import { Authority } from "./authority.entity.js";
 
 @Entity({ name: "mandates" })
 @Index(["category", "county", "status"])
@@ -40,12 +38,14 @@ export class Mandate {
   @Column({ type: "varchar", default: "new" })
   status!: MandateStatus;
 
-  @ManyToOne(() => Authority, { nullable: true, onDelete: "SET NULL" })
-  @JoinColumn({ name: "authority_id" })
-  authority?: Authority | null;
+  // The administrative scope this mandate is addressed to.
+  @Column({ name: "scope_level", type: "varchar" })
+  scopeLevel!: ScopeLevel;
 
-  @Column({ name: "authority_id", type: "uuid", nullable: true })
-  authorityId?: string | null;
+  // Cached human-readable label for the responsible office. Derived from
+  // scopeLevel + location at submission time and refreshed on response.
+  @Column({ name: "responsible_office", type: "varchar" })
+  responsibleOffice!: string;
 
   @Column({ type: "varchar", nullable: true })
   county?: string | null;
@@ -60,13 +60,13 @@ export class Mandate {
   submissionCount!: number;
 
   // 0..1 — log-scaled by submissionCount and confidence diversity.
-  @Column({ name: "evidence_strength", type: "double precision", default: 0 })
+  @Column({ name: "evidence_strength", type: "real", default: 0 })
   evidenceStrength!: number;
 
-  @Column({ name: "first_reported_at", type: "timestamptz" })
+  @Column({ name: "first_reported_at", type: "datetime" })
   firstReportedAt!: Date;
 
-  @Column({ name: "last_activity_at", type: "timestamptz" })
+  @Column({ name: "last_activity_at", type: "datetime" })
   lastActivityAt!: Date;
 
   @CreateDateColumn({ name: "created_at" })

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
+  KENYA_COUNTIES,
   MANDATE_CATEGORIES,
   MANDATE_STATUSES,
   URGENCY_LEVELS,
@@ -101,11 +102,17 @@ export function MandatesListPage() {
               </option>
             ))}
           </Select>
-          <Input
-            placeholder="County"
-            defaultValue={params.get("county") ?? ""}
-            onBlur={(e) => update("county", e.target.value)}
-          />
+          <Select
+            value={params.get("county") ?? ""}
+            onChange={(e) => update("county", e.target.value)}
+          >
+            <option value="">All counties</option>
+            {KENYA_COUNTIES.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
           <Select
             value={params.get("sort") ?? "recent"}
             onChange={(e) => update("sort", e.target.value)}
@@ -160,8 +167,7 @@ export function MandatesListPage() {
                   <div className="mt-1 text-xs text-muted-foreground">
                     {m.submissionCount} submission
                     {m.submissionCount === 1 ? "" : "s"} · evidence{" "}
-                    {m.evidenceStrength.toFixed(2)}
-                    {m.authority && ` · ${m.authority.name}`}
+                    {m.evidenceStrength.toFixed(2)} · {m.responsibleOffice}
                   </div>
                 </Link>
               </Card>

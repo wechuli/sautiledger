@@ -1,23 +1,26 @@
-import type {
-  AiProcessingResult,
-  AuthoritySummary,
-  MandateCategory,
-  MandateMatchDecision,
-  Urgency,
+import {
+  responsibleOffice,
+  type AiProcessingResult,
+  type CivicLocation,
+  type MandateCategory,
+  type MandateMatchDecision,
+  type ScopeLevel,
+  type Urgency,
 } from "@sautiledger/shared";
 import { env } from "../config/env.js";
 
 // ---------------------------------------------------------------------
 // Public service surface.
-// Phase 1: contract-compliant mock only. Phase 3 swaps in the OpenAI
-// implementation when AI_PROVIDER=openai.
+// The MVP scopes a submission to one of: national, county, constituency,
+// ward. The "responsible office" is derived from that scope + location;
+// there is no Authority table.
 // ---------------------------------------------------------------------
 
 export type ProcessInput = {
   originalText: string;
   languageHint?: string;
-  location: { county?: string; constituency?: string; ward?: string };
-  availableAuthorities: AuthoritySummary[];
+  location: CivicLocation;
+  scopeLevel: ScopeLevel;
 };
 
 export type MatchCandidate = {
@@ -36,8 +39,9 @@ export async function processSubmissionWithAi(
   input: ProcessInput,
 ): Promise<AiProcessingResult> {
   if (env.aiProvider === "openai" && env.openaiApiKey) {
-    const { processSubmissionWithOpenAi } =
-      await import("./ai-processing.openai.js");
+    const { processSubmissionWithOpenAi } = await import(
+      "./ai-processing.openai.js"
+    );
     return processSubmissionWithOpenAi(input);
   }
   return mockProcess(input);
@@ -50,8 +54,9 @@ export async function matchSubmissionToMandate(
     return { matched_mandate_id: null, confidence: 0, reason: "no candidates" };
   }
   if (env.aiProvider === "openai" && env.openaiApiKey) {
-    const { matchSubmissionToMandateWithOpenAi } =
-      await import("./ai-processing.openai.js");
+    const { matchSubmissionToMandateWithOpenAi } = await import(
+      "./ai-processing.openai.js"
+    );
     return matchSubmissionToMandateWithOpenAi(input);
   }
   return mockMatch(input);
@@ -59,7 +64,6 @@ export async function matchSubmissionToMandate(
 
 // ---------------------------------------------------------------------
 // Deterministic mock — keyword-based category & urgency detection.
-// Returns the same shape as the real processor.
 // ---------------------------------------------------------------------
 
 const CATEGORY_KEYWORDS: Record<MandateCategory, string[]> = {
@@ -101,61 +105,6 @@ function pickUrgency(text: string): { urgency: Urgency; confidence: number } {
   return { urgency: "medium", confidence: 0.5 };
 }
 
-function pickAuthority(
-  category: MandateCategory,
-  location: ProcessInput["location"],
-  authorities: AuthoritySummary[],
-): {
-  authority: AuthoritySummary | null;
-  confidence: number;
-  office: string;
-  level: AuthoritySummary["level"];
-} {
-  // Prefer county-level authority whose name contains the category, in the same county.
-  const sameCounty = authorities.filter(
-    (a) =>
-      !location.county ||
-      a.county === location.county ||
-      a.level === "national",
-  );
-  const byCategoryHint = sameCounty.find((a) =>
-    a.name.toLowerCase().includes(category),
-  );
-  if (byCategoryHint) {
-    return {
-      authority: byCategoryHint,
-      confidence: 0.6,
-      office: byCategoryHint.name,
-      level: byCategoryHint.level,
-    };
-  }
-  // Fall back to any county authority, then national.
-  const county = sameCounty.find((a) => a.level === "county");
-  if (county) {
-    return {
-      authority: county,
-      confidence: 0.4,
-      office: county.name,
-      level: "county",
-    };
-  }
-  const national = authorities.find((a) => a.level === "national");
-  if (national) {
-    return {
-      authority: national,
-      confidence: 0.3,
-      office: national.name,
-      level: "national",
-    };
-  }
-  return {
-    authority: null,
-    confidence: 0.2,
-    office: "Responsible county department",
-    level: "county",
-  };
-}
-
 function detectLanguage(
   text: string,
   hint?: string,
@@ -176,20 +125,15 @@ function detectLanguage(
 async function mockProcess(input: ProcessInput): Promise<AiProcessingResult> {
   const { category, confidence: catConf } = pickCategory(input.originalText);
   const { urgency, confidence: urgConf } = pickUrgency(input.originalText);
-  const {
-    authority,
-    confidence: authConf,
-    office,
-    level,
-  } = pickAuthority(category, input.location, input.availableAuthorities);
   const { lang } = detectLanguage(input.originalText, input.languageHint);
+  const office = responsibleOffice(input.scopeLevel, input.location);
 
   const draft = draftFormalMandate({
     category,
     urgency,
     location: input.location,
     office,
-    authorityName: authority?.name ?? null,
+    scopeLevel: input.scopeLevel,
   });
 
   return {
@@ -199,10 +143,9 @@ async function mockProcess(input: ProcessInput): Promise<AiProcessingResult> {
     issue_category_confidence: catConf,
     urgency,
     urgency_confidence: urgConf,
-    responsible_level: level,
+    responsible_scope: input.scopeLevel,
     responsible_office: office,
-    suggested_authority_id: authority?.id ?? null,
-    responsible_authority_confidence: authConf,
+    responsible_scope_confidence: 0.9, // citizen-declared, so high confidence
     summary: draft.summary,
     recommended_mandate: {
       title: draft.title,
@@ -216,9 +159,7 @@ async function mockProcess(input: ProcessInput): Promise<AiProcessingResult> {
 }
 
 // ---------------------------------------------------------------------
-// Drafts a civic-toned Community Mandate for the mock path. The real
-// OpenAI path writes its own body; this exists so local demos still
-// surface a substantive, reviewable draft.
+// Drafts a civic-toned Community Mandate for the mock path.
 // ---------------------------------------------------------------------
 
 const CATEGORY_LABEL: Record<MandateCategory, string> = {
@@ -270,7 +211,7 @@ const URGENCY_FRAMING: Record<Urgency, string> = {
   low: "The concern is documented for institutional awareness and tracking. A response is requested within thirty days.",
 };
 
-function locationPhrase(loc: ProcessInput["location"]): string {
+function locationPhrase(loc: CivicLocation): string {
   const parts = [loc.ward, loc.constituency, loc.county].filter(
     (p): p is string => !!p && p.length > 0,
   );
@@ -282,15 +223,14 @@ function locationPhrase(loc: ProcessInput["location"]): string {
 function draftFormalMandate(args: {
   category: MandateCategory;
   urgency: Urgency;
-  location: ProcessInput["location"];
+  location: CivicLocation;
   office: string;
-  authorityName: string | null;
+  scopeLevel: ScopeLevel;
 }): { title: string; summary: string; body: string } {
   const where = locationPhrase(args.location);
   const label = CATEGORY_LABEL[args.category];
   const concern = CATEGORY_CONCERN[args.category];
   const framing = URGENCY_FRAMING[args.urgency];
-  const responsibleParty = args.authorityName ?? args.office;
 
   const title =
     args.category === "water"
@@ -305,9 +245,9 @@ function draftFormalMandate(args: {
 
   const body = [
     `Community Mandate: ${title}.`,
-    `Location: ${where}. Issue area: ${label}. Urgency: ${args.urgency}.`,
+    `Location: ${where}. Issue area: ${label}. Urgency: ${args.urgency}. Scope: ${args.scopeLevel}.`,
     `Background: ${concern}. This mandate aggregates submissions from members of the community in ${where} and is presented for institutional review.`,
-    `Responsible body: ${responsibleParty}. The community requests that this office acknowledge the mandate, publish an initial assessment, and share a clear plan with timelines.`,
+    `Responsible body: ${args.office}. The community requests that this office acknowledge the mandate, publish an initial assessment, and share a clear plan with timelines.`,
     `Expected response: ${framing}`,
     "This draft is generated from anonymized community submissions and is intended for review and editing by accountable institutions before public response. Individual submitters are not identified.",
   ].join("\n\n");
@@ -316,8 +256,7 @@ function draftFormalMandate(args: {
 }
 
 // ---------------------------------------------------------------------
-// Mock clustering matcher: simple token-overlap scoring against the
-// candidate mandate summaries. Deterministic, no network.
+// Mock clustering matcher: token-overlap scoring against candidate summaries.
 // ---------------------------------------------------------------------
 
 function tokenize(s: string): Set<string> {
@@ -354,7 +293,6 @@ function mockMatch(input: MatchInput): MandateMatchDecision {
   }
   return {
     matched_mandate_id: best.id,
-    // Stretch jaccard to a more usable 0..1 range; cap at 0.95.
     confidence: Math.min(0.95, 0.5 + best.score),
     reason: `token-overlap jaccard=${best.score.toFixed(2)}`,
   };

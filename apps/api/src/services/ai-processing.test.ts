@@ -16,8 +16,8 @@ describe("processSubmissionWithAi (mock)", () => {
     const result = await processSubmissionWithAi({
       originalText:
         "Maji haitoki kwa wiki mbili. The community borehole is dead.",
-      location: { county: "Nairobi", ward: "Mathare" },
-      availableAuthorities: [],
+      location: { country: "Kenya", county: "Nairobi", ward: "Mathare" },
+      scopeLevel: "ward",
     });
     expect(MANDATE_CATEGORIES).toContain(result.issue_category);
     expect(URGENCY_LEVELS).toContain(result.urgency);
@@ -27,14 +27,16 @@ describe("processSubmissionWithAi (mock)", () => {
     expect(result.generated).toBe(true);
     expect(result.recommended_mandate.title).toBeTruthy();
     expect(result.summary).toBeTruthy();
+    expect(result.responsible_scope).toBe("ward");
+    expect(result.responsible_office).toContain("Mathare");
   });
 
   it("classifies a water concern as 'water'", async () => {
     const result = await processSubmissionWithAi({
       originalText:
         "Water shortage in our ward. Borehole stopped working two weeks ago.",
-      location: {},
-      availableAuthorities: [],
+      location: { country: "Kenya" },
+      scopeLevel: "county",
     });
     expect(result.issue_category).toBe("water");
   });
