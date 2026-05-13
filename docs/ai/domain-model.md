@@ -2,6 +2,16 @@
 
 This document summarizes the core entities AI agents should use when designing code, schemas, API routes, and UI state.
 
+The backend should implement these entities with TypeORM. Prefer explicit entity classes, migrations, and repository/service layers over scattered database access.
+
+Recommended TypeORM conventions:
+
+- Use UUID primary keys for domain entities.
+- Use `createdAt` and `updatedAt` timestamp columns where records can change.
+- Use enums for stable status, role, urgency, moderation, and evidence values.
+- Keep entity relations explicit, but avoid loading large relation graphs by default.
+- Store generated AI output in structured JSON columns only when the shape is validated.
+
 ## Submission
 
 An individual raw concern from a citizen or organizer.
@@ -20,7 +30,10 @@ Key fields:
 - `mandateClusterId`
 - `submissionHash`
 - `processingStatus`
+- `moderationRecommendation`
+- `aiProcessingResult`
 - `createdAt`
+- `updatedAt`
 
 Notes:
 
@@ -45,6 +58,7 @@ Key fields:
 - `status`
 - `submissionCount`
 - `evidenceStrength`
+- `moderationStatus`
 - `firstReportedAt`
 - `lastActivityAt`
 - `createdAt`
@@ -73,6 +87,8 @@ Key fields:
 - `description`
 - `contactEmail`
 - `verified`
+- `createdAt`
+- `updatedAt`
 
 Initial levels:
 
@@ -95,6 +111,7 @@ Key fields:
 - `statusUpdate`
 - `expectedResolutionDate`
 - `createdAt`
+- `updatedAt`
 
 Response types:
 
@@ -193,3 +210,20 @@ Roles:
 - `moderator`
 
 MVP auth can be simple, but role checks should be explicit.
+
+## Dashboard Read Models
+
+The frontend should be dashboard-rich, so the API should expose aggregate read models rather than forcing the React app to compute everything from raw rows.
+
+Recommended read models:
+
+- Mandates by issue category.
+- Mandates by urgency.
+- Mandates by status.
+- Submission trends over time.
+- Top authorities by pending mandates.
+- Responsiveness Index by authority.
+- Evidence strength distribution.
+- Recent mandate activity.
+
+These can begin as service-layer aggregate queries using TypeORM query builders. Materialized views or cached aggregates can come later if needed.

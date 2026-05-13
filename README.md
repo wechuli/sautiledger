@@ -19,12 +19,14 @@ AI coding agents should start with:
 
 The MVP is Kenya-focused and will likely use:
 
-- Vite, React, and TypeScript for the frontend.
-- Express.js and TypeScript for the backend.
+- Vite, React, TypeScript, shadcn/ui, lucide-react, and Recharts for the frontend.
+- Express.js, TypeScript, and TypeORM for the backend.
 - PostgreSQL for persistence.
+- Docker Compose for local app + database development.
+- Kubernetes for deployment.
 - OpenAI APIs for language detection, translation, classification, summarization, mandate generation, and duplicate support.
 
-The first build should keep the full demo path simple: submit concern, process with mock AI, create or update a Community Mandate, show it on a public dashboard, and allow an institution response.
+The React frontend should be served by the Express app in production-like runs. The first build should keep the full demo path simple: submit concern, process with mock AI, create or update a Community Mandate, show it on a graph-rich public dashboard, and allow an institution response. SMS integration is out of scope for the MVP.
 
 ## Environment
 

@@ -20,8 +20,11 @@ The repository is intentionally early-stage. Treat existing docs as product sour
 
 Expected stack from the brief:
 
-- Frontend: Vite, React, TypeScript
-- Backend: Express.js, TypeScript, REST API
+- Frontend: Vite, React, TypeScript, shadcn/ui, lucide-react, Recharts
+- Backend: Express.js, TypeScript, REST API, TypeORM
+- Runtime shape: Express serves the built React frontend and exposes API routes under `/api`
+- Local development: Docker Compose for PostgreSQL and the backend/app container
+- Deployment: Kubernetes
 - Database: PostgreSQL
 - AI: OpenAI API
 - Optional later: pgvector, background jobs, PWA/offline mode, PDF exports
@@ -35,6 +38,9 @@ Expected stack from the brief:
 - Keep AI outputs reviewable, editable, and marked as generated where appropriate.
 - Prefer simple, explicit code over clever abstractions until the product surface stabilizes.
 - Keep low-bandwidth users in mind: mobile-first UI, small payloads, resilient flows, clear language.
+- Make the frontend dashboard rich and data-forward, with useful graphs, strong visual hierarchy, and clear iconography.
+- Use shadcn/ui components, lucide-react icons, and Recharts for frontend UI and charts.
+- Use TypeORM entities and migrations for persistence. Avoid ad hoc SQL unless a query is materially clearer or more efficient.
 
 ## Domain Language
 
@@ -91,11 +97,14 @@ When implementing features that touch submissions, identity, evidence, or public
 
 1. Scaffold a TypeScript monorepo or two-app layout with `apps/web` and `apps/api`.
 2. Add shared domain types in `packages/shared` if the project needs shared validation/types.
-3. Build the low-bandwidth submission form.
-4. Build an API endpoint that accepts submissions and returns an anonymous tracking code.
-5. Add a mock AI processing service before wiring the OpenAI API.
-6. Add in-memory or seed-data dashboard views for demo flow.
-7. Introduce PostgreSQL persistence once domain types stabilize.
+3. Configure the API build so Express serves `apps/web/dist` in production.
+4. Add Docker Compose for the app container and PostgreSQL.
+5. Add TypeORM data source, entities, migrations, and seeds.
+6. Build the low-bandwidth submission form.
+7. Build an API endpoint that accepts submissions and returns an anonymous tracking code.
+8. Add a mock AI processing service before wiring the OpenAI API.
+9. Build dashboard views with shadcn/ui, lucide-react, and Recharts.
+10. Add Kubernetes manifests after the local container path is stable.
 
 ## Testing Expectations
 
@@ -111,6 +120,9 @@ When implementing features that touch submissions, identity, evidence, or public
 - `SUBMISSION_HASH_SALT`
 - `SESSION_SECRET`
 - `CORS_ORIGIN`
+- `AI_PROVIDER`
+- `PORT`
+- `NODE_ENV`
 
 Do not commit real secrets.
 

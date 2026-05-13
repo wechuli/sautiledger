@@ -9,6 +9,13 @@ Use `docs/sautiledger_project_brief.md` as the source of truth for product inten
 - Prefer TypeScript throughout the app.
 - Keep domain names consistent: Submission, Community Mandate, Authority, Institution Response, Responsiveness Index, Evidence Strength.
 - Build mobile-first, low-bandwidth interfaces.
+- Use shadcn/ui for frontend components.
+- Use lucide-react for icons.
+- Use Recharts for dashboard charts and analytics visualizations.
+- Make the dashboard graph-rich, polished, and easy to scan.
+- Use TypeORM entities, repositories, and migrations for PostgreSQL persistence.
+- Express should serve the built React frontend and expose API routes under `/api`.
+- Docker Compose is the local app + PostgreSQL runtime; Kubernetes is the deployment target.
 - Keep privacy and safety behavior explicit in code.
 - Keep AI integration behind service functions with typed, validated inputs and outputs.
 - Use mock AI processors for local/demo flows until real OpenAI configuration exists.
@@ -35,4 +42,3 @@ Use realistic examples such as:
 - `Huku maji imekuwa shida for weeks. Borehole iko dead na chief anasema tu ngoja.`
 - `The dispensary has had no medicine for two months.`
 - `Barabara ya ward yetu imeharibika na magari ya wagonjwa yanakwama.`
-

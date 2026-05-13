@@ -6,6 +6,16 @@ SautiLedger is a PeaceTech platform for public participation with receipts. It h
 
 The MVP is Kenya-focused and should support English, Swahili, Sheng, and mixed-language submissions.
 
+## MVP Technical Boundaries
+
+- No SMS, USSD, or voice-note integration in the MVP.
+- Low-bandwidth participation is handled through a mobile-first web form.
+- The React frontend is served by the Express app for production-like runs.
+- Local development uses Docker Compose for the app/backend container and PostgreSQL.
+- Deployment targets Kubernetes.
+- The frontend uses shadcn/ui, lucide-react, and Recharts.
+- The backend uses Express, TypeScript, TypeORM, and PostgreSQL.
+
 ## Core Problem
 
 Community concerns are often raised through barazas, WhatsApp groups, SMS, local radio, civil society meetings, and protests. Because this feedback stays fragmented, institutions can dismiss it as anecdotal, disorganized, political, or never formally received.
@@ -36,7 +46,7 @@ Into this:
 - AI-powered mandate builder.
 - Community mandate clustering.
 - Anonymous submission integrity.
-- Public mandate dashboard.
+- Public mandate dashboard with charts, visual summaries, and clear icons.
 - Institution response portal.
 - Responsiveness Index.
 - Mandate export, initially Markdown or PDF.
