@@ -1,11 +1,13 @@
 # syntax=docker/dockerfile:1.7
 
 # ---------- Stage 1: install all deps (dev + prod) ----------
-# better-sqlite3 is a native module — alpine needs python3 + a C++ toolchain
-# to compile it from source if no prebuilt binary is available for Node 24.
-FROM node:24-alpine AS deps
+# Using Debian-based image for better native module compatibility and faster installs.
+# Prebuilt binaries for better-sqlite3 and bcrypt are available, avoiding slow compilation.
+FROM node:24-bookworm AS deps
 WORKDIR /app
-RUN apk add --no-cache python3 make g++ libc6-compat
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
@@ -22,9 +24,11 @@ RUN npm run build
 # Re-resolve workspace deps with --omit=dev so the runtime image is small
 # and free of test/build tooling. Native modules are recompiled here so the
 # binary matches the runtime stage's libc / Node ABI exactly.
-FROM node:24-alpine AS prod-deps
+FROM node:24-bookworm AS prod-deps
 WORKDIR /app
-RUN apk add --no-cache python3 make g++ libc6-compat
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
@@ -34,11 +38,13 @@ RUN npm ci --omit=dev --workspaces --include-workspace-root --ignore-scripts \
  && npm cache clean --force
 
 # ---------- Stage 4: minimal runtime image ----------
-FROM node:24-alpine AS runtime
+FROM node:24-bookworm AS runtime
 WORKDIR /app
 
 # tini gives us proper PID 1 signal handling (clean SIGTERM on rolling deploys).
-RUN apk add --no-cache tini libstdc++
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tini \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production \
     PORT=3000 \
@@ -48,8 +54,8 @@ ENV NODE_ENV=production \
 # Non-root user owns /app and the SQLite data directory. Kubernetes will
 # mount a PersistentVolume at /data; we pre-create it so the container also
 # works when run with `docker run` and no volume.
-RUN addgroup -S app -g 1001 \
- && adduser  -S app -G app -u 1001 \
+RUN addgroup --system --gid 1001 app \
+ && adduser --system --uid 1001 --ingroup app --no-create-home --shell /usr/sbin/nologin app \
  && mkdir -p /data \
  && chown -R app:app /app /data
 
